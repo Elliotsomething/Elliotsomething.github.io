@@ -22,7 +22,6 @@ tags:
 
 **官方描述：** Spin locks are a simple, fast, thread-safe synchronization primitive that is suitable in situations where contention is expected to be low. The spinlock operations use memory barriers to synchronize access to shared memory protected by the lock. Preemption is possible while the lock is held.
 
-
 #### 2、dispatch_semaphore
  dispatch_semaphore是信号量，但当信号总量设为 1 时也可以当作锁来。在没有等待情况出现时，它的性能比 pthread_mutex 还要高，但一旦有等待情况出现时，性能就会下降许多。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。对磁盘缓存来说，它比较合适。
 
