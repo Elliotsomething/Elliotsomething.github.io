@@ -16,3 +16,37 @@ tags:
 在iOS中常看到很多枚举加左移操作，那么为什么要这样写呢？
 
 我觉得这样写的好处有两个，其一是易读性更高，左移操作符前后两个数据可以分别代表不同的含义，其二就是为了和其他未操作符结合起来表示或的含义；
+
+**举个简单的例子：**
+
+```objective_c
+typedef NS_OPTIONS(NSInteger, RefreshType) {
+    RefreshTypePullDown =1 <<0,
+    RefreshTypePullUp   =1 <<1
+};
+```
+上面定义一个枚举RefreshType，里面的数据用左移操作表示两个不同的数据；
+然后将它定义成属性：
+
+```objective_c
+@property (nonatomic) RefreshType refreshType;
+```
+然后这样调用：
+
+```objective_c
+RefreshType = RefreshTypePullDown|RefreshTypePullUp;  
+```
+这个就是和位操作或结合起来，表示同时；
+那么怎么进行判断呢？
+可以这样判断：
+
+```objective_c
+if (self.refreshType & RefreshTypePullDown) {  
+    code;  
+}    
+if (self.refreshType & RefreshTypePullUp) {  
+    code;  
+}  
+```
+
+和位操作与结合起来，这样就可以了。
