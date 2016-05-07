@@ -48,5 +48,4 @@ if (self.refreshType & RefreshTypePullUp) {
     code;  
 }  
 ```
-
 和位操作与结合起来，这样就可以了。
