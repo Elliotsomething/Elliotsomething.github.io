@@ -49,7 +49,7 @@ UIImage *image = [UIImage imageWithData:imageData];
 **这两个API如下**
 
 ```objective_c
-UIKIT_EXTERN NSData *UIImagePNGRepresentation(UIImage *image);                               // return image as PNG. May return nil if image has no CGImageRef or invalid bitmap format  
+UIKIT_EXTERN NSData *UIImagePNGRepresentation(UIImage *image); // return image as PNG. May return nil if image has no CGImageRef or invalid bitmap format  
 UIKIT_EXTERN NSData *UIImageJPEGRepresentation(UIImage *image, CGFloat compressionQuality);  // return image as JPEG. May return nil if image has no CGImageRef or invalid bitmap format. compression is 0(most)..1(least)  
 ```
 接下来是对图片进行剪切，其实剪切也是对 图片进行重画，只是对图片有区域的重画而已：
