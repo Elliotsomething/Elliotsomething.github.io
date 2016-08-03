@@ -1,8 +1,8 @@
 ---
 layout:     post
 title:      "iOS 之 UIcollectionView学习"
-subtitle:   ""
-date:       2014-9-18
+subtitle:   "UIcollectionView Learning"
+date:       2015-9-18
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
