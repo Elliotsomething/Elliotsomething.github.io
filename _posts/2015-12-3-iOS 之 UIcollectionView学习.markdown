@@ -21,7 +21,7 @@ tags:
 
 **其有如下属性：**
 
-```Objective_C
+```objective_c
 @property (nonatomic) CGFloat minimumLineSpacing;  //cell行间距
 @property (nonatomic) CGFloat minimumInteritemSpacing;  //cell列间距
 @property (nonatomic) CGSize itemSize;	//cell大小
@@ -31,7 +31,7 @@ tags:
 ```
 **基本上面这些就够了，初始化：**
 
-```Objective_C
+```objective_c
 //确定是水平滚动，还是垂直滚动
 flowLayout=[[UICollectionViewFlowLayout alloc] init];
 [flowLayout setScrollDirection:UICollectionViewScrollDirectionVertical];
@@ -41,13 +41,13 @@ flowLayout.minimumInteritemSpacing = 0.1f;
 
 然后是`UIcollectionView`的初始化了，其初始化方法有两个：
 
-```Objective_C
+```objective_c
 - (instancetype)initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout;
 - (nullable instancetype)initWithCoder:(NSCoder *)aDecoder;
 ```
 本文只用了第一个，由于`UIcollectionView`也是继承`UIscrollView`的，所以很多属性方法都是可以用父类的。
 
-```Objective_C
+```objective_c
 //UIcollectionView的初始化：
 @property (nonatomic, retain) UICollectionView *collectionView;
 self.collectionView=[[UICollectionView alloc] initWithFrame:CGRectMake(0, 0,SCREEN_WIDTH,self.view.height) collectionViewLayout:flowLayout];
@@ -66,7 +66,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 
 **其注册方法主要有这些：**
 
-```Objective_C
+```objective_c
 //cell的注册方法：
 - (void)registerClass:(nullable Class)cellClass forCellWithReuseIdentifier:(NSString *)identifier;
 - (void)registerNib:(nullable UINib *)nib forCellWithReuseIdentifier:(NSString *)identifier;
@@ -79,7 +79,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 
 **下面是用第一个方法初始化：**
 
-```Objective_C
+```objective_c
 //注册Cell，必须要有
 [self.collectionView registerClass:[AppCollectionViewCell class] forCellWithReuseIdentifier:@"AppCollectionViewCell"];
 [self.collectionView registerClass:[HeaderCRView class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:@"HeaderView"];
@@ -87,7 +87,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 ```
 在`UIcollectionView`上注册三个类，分别是`cell`、`header`、`footer`，那么我们首先就要有这三个类，才能完成注册，不然会崩溃。
 
-```Objective_C
+```objective_c
 //header类  需要继承自UICollectionReusableView
 @interface HeaderCRView : UICollectionReusableView
 @end
@@ -126,7 +126,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 好了，class类都注册好了，接下来是怎么用了。
 首先要把cell、header、footer的布局好了
 
-```Objective_C
+```objective_c
 //定义每个Item 的大小
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -140,7 +140,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 ```
 然后：UIcollectionView的dataSource方法和UItableView的差不多也有两个required
 
-```Objective_C
+```objective_c
 //定义展示的UICollectionViewCell的个数
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section;
 // 返回cell必须用-dequeueReusableCellWithReuseIdentifier:forIndexPath:来获取
@@ -149,7 +149,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 
 **代码如下：**
 
-```Objective_C
+```objective_c
 //定义展示的UICollectionViewCell的个数
 -(NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
@@ -165,7 +165,7 @@ self.collectionView.showsVerticalScrollIndicator = NO;
 ```
 然后是一系列的delegate方法了：
 
-```Objective_C
+```objective_c
 //UICollectionView被选中时调用的方法
 -(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath;
 //返回这个UICollectionView是否可以被选择
@@ -196,7 +196,7 @@ return UNIT_PIXEL;
 ```
 ok，基本上就是上面这些了，当然还有一些delegate方法是可以用属性代替的，比如
 
-```Objective_C
+```objective_c
 flowLayout.headerReferenceSize = CGSizeMake(SCREEN_WIDTH, 70);
 和
 //返回头footerView的大小
@@ -216,7 +216,7 @@ flowLayout.headerReferenceSize = CGSizeMake(SCREEN_WIDTH, 70);
 
 **代码如下：（在cell中）**
 
-```Objective_C
+```objective_c
 //捕获cell的Touch事件，添加点击效果
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
   self.backgroundColor = [UIColor colorWithHexString:@"#000000" alpha:0.05];
@@ -240,7 +240,7 @@ flowLayout.headerReferenceSize = CGSizeMake(SCREEN_WIDTH, 70);
 **代码如下：**
 首先给collectionView添加长按手势
 
-```Objective_C
+```objective_c
 首先给collectionView添加长按手势
 UILongPressGestureRecognizer *longpress = [[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(moveCell:)];
 [self.collectionView addGestureRecognizer:longpress];
@@ -251,7 +251,7 @@ imgView = [[UIImageView alloc]init];
 
 然后实现方法：
 
-```Objective_C
+```objective_c
 - (void)moveCell:(UILongPressGestureRecognizer *)gest{
   static NSIndexPath *currentIndexPath = nil;
   AppCollectionViewCell *cell;
