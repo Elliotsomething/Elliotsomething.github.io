@@ -1,0 +1,77 @@
+---
+layout:     post
+title:      "iOS 之 图片压缩与剪切"
+subtitle:   ""
+date:       2015-8-20
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 图片压缩
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载**
+
+有时候为了优化性能，减少内存，提升流畅度，需要对图片进行压缩或者剪切；
+在保证质量以及清晰度的情况下，对图片处理，对优化性能有很明显的提升。
+压缩的图片的步骤很简单：
+
+**直接上代码：**
+
+```objective_c
+
+//对图片尺寸进行压缩--
+-(UIImage*)imageWithImage:(UIImage*)image scaledToSize:(CGSize)newSize
+{
+	// Create a graphics image context
+	UIGraphicsBeginImageContext(newSize);
+
+	// Tell the old image to draw in this new context, with the desired
+	// new size
+	[image drawInRect:CGRectMake(0,0,newSize.width,newSize.height)];
+
+	// Get the new image from the context
+	UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
+
+	// End the context
+	UIGraphicsEndImageContext();
+
+	// Return the new image.
+	return newImage;
+}
+```
+其实就是对图片用drawInRect 重画，不过必须在context中进行。
+然后就是对图片进行质量压缩：jpeg或者png
+
+```objective_c
+NSData *imageData = UIImageJPEGRepresentation(imageNew,1.0);  
+UIImage *image = [UIImage imageWithData:imageData];  
+```
+上面的是jpeg，转的质量是通过后面的参数控制的：0.0~1.0，质量从低到高。值得一体的是，只会对图片进行一次质量压缩，压缩完之后就不会在压缩了：比如用一个循环对图片压缩质量为0.5，循环10次，压缩仍为0.5。
+
+**这两个API如下**
+
+```objective_c
+UIKIT_EXTERN NSData *UIImagePNGRepresentation(UIImage *image);                               // return image as PNG. May return nil if image has no CGImageRef or invalid bitmap format  
+UIKIT_EXTERN NSData *UIImageJPEGRepresentation(UIImage *image, CGFloat compressionQuality);  // return image as JPEG. May return nil if image has no CGImageRef or invalid bitmap format. compression is 0(most)..1(least)  
+```
+接下来是对图片进行剪切，其实剪切也是对 图片进行重画，只是对图片有区域的重画而已：
+
+```objective_c
+-(UIImage *)cutImageByScalingToSize:(CGSize)size  
+{  
+    UIImage *sourceImage = self;  
+    UIImage *newImage = nil;  
+    if (size.width > self.size.width) {  
+        size.width = self.size.width;  
+    }  
+    if (size.height > self.size.height) {  
+        size.height = self.size.height;  
+    }  
+    CGImageRef cgImg = CGImageCreateWithImageInRect([sourceImage CGImage], CGRectMake( floorf((self.size.width - size.width)/2), floorf((self.size.height - size.height)/2), floorf(size.width), floorf(size.height)));  
+    newImage = [UIImage imageWithCGImage:cgImg];  
+    CGImageRelease(cgImg);  
+    return newImage;  
+}
+```
