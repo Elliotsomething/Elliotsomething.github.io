@@ -17,7 +17,9 @@ tags:
 本文旨在了解iOS中的几种锁；
 
 #### 1、OSSpinLock 自旋锁
+
 性能最高的锁。原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。对于内存缓存的存取来说，它非常合适。
+
 自旋锁几乎不进入内核，仅仅是重新加载自旋锁。 如果自旋锁被占用时间是几十，上百纳秒，性能还是挺高的。减少了代价较高的系统调用和一系列上下文言切换。 但是，该锁不是万能的;如果该锁抢占比较多的时候，不要使用该锁。会占用较多cpu,导致耗电较多。 这种情况下使用pthread_mutex或者dispatch_semaphore。虽然耗时多一点，但是避免了电量过多的消耗。是不错的选择。
 
 **官方描述：** Spin locks are a simple, fast, thread-safe synchronization primitive that is suitable in situations where contention is expected to be low. The spinlock operations use memory barriers to synchronize access to shared memory protected by the lock. Preemption is possible while the lock is held.
@@ -42,7 +44,6 @@ pthread_mutex_t定义在pthread.h，所以记得#include，底层的API还是性
 
 #### 8、NSDistributedLock分布式锁  
 （忽略）
-
 
 ### 耗时方面：
 - OSSpinlock耗时最少;
