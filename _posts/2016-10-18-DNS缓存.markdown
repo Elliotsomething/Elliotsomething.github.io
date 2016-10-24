@@ -38,3 +38,22 @@ DNS的缓存策略，tcp连接优化处理
 
 
 #### 我们项目中的IP缓存策略是：
+
+1、第一次连接，首先连接默认内置IP，同时另起线程对内置域名进行DNS解析，解析结果存入DNSPool，并且进行连接（最多6个）；
+当有IP连接上后断开其他连接
+
+1.1、连上服务器后下发一些IPs，存入serverPool
+（或者服务器IP有变，则下发临时IP，存入tempPool，为了防止某些情况下IP变化连接不上）
+
+2、第二次及之后连接，从serverPool中取最多6个IP出来进行连接（带上版本号），同时另起线程对内置域名进行DNS解析，解析结果存入DNSPool，
+并且进行连接（最多6个）；同时对比serverPool，将新解析的IP加入serverPool；
+
+2.1、当有IP连上服务器后，断开其他连接；服务器根据serverPool的版本号判断是否下发IPs存入serverPool
+（或者服务器IP有变，则下发临时IP，存入tempPool，为了防止某些情况下IP变化连接不上）
+
+3、建联时每次都会去DNS解析域名，结果存入DNSPool（最短时间间隔60s）
+
+注：
+serverPool:默认IP+服务器下发IP池   
+DNSPool:DNS解析IP池   
+tempPool:服务器下发临时IP池
