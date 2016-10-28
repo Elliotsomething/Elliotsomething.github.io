@@ -53,3 +53,13 @@ DNS的缓存策略，tcp连接优化处理
 - serverPool:默认IP+服务器下发IP池   
 - DNSPool:DNS解析IP池   
 - tempPool:服务器下发临时IP池
+
+### 其他
+
+#### ipv4 vs ipv6
+
+ipv4是互联网协议（Internet Protocol，IP）的第四版
+
+ipv6用于替代现行版本IP协议（IPv4）的下一代IP协议
+
+ssl：数据加密协议，ipv6需要支持
