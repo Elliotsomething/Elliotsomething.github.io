@@ -63,3 +63,5 @@ ipv4是互联网协议（Internet Protocol，IP）的第四版
 ipv6用于替代现行版本IP协议（IPv4）的下一代IP协议
 
 ssl：数据加密协议，ipv6需要支持
+
+#### DNS解析：域名解析
