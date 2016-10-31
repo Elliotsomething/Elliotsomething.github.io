@@ -71,5 +71,37 @@ IPv4中使用gethostbyname()函数完成主机名到地址解析，这个函数�
 IPv6中引入了getaddrinfo()的新API，它是协议无关的，既可用于IPv4也可用于IPv6。getaddrinfo函数能够处理名字到地址以及服务到端口这两种转换，返回的是一个addrinfo的结构（列表）指针而不是一个地址清单。这些addrinfo结构随后可由套接口函数直接使用。如此以来，getaddrinfo函数把协议相关性安全隐藏在这个库函数内部。应用程序只要处理由getaddrinfo函数填写的套接口地址结构。
 
 ```objective_c
+代码：
++ (NSArray *)syncGetaddrinfoWithDomain:(NSString *)domain
+{
+    if (domain.length == 0) {
+        return nil;
+    }
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_INET;
+    hints.ai_protocol = IPPROTO_TCP;
+    struct addrinfo *addrs, *addr;
+
+    int getResult = getaddrinfo([domain UTF8String], NULL, &hints, &addrs);
+    if (getResult || addrs == nil) {
+        NSLogToFile(@"Warn: DNS with domain:%@ failed:%d", domain, getResult);
+        return nil;
+    }
+    addr = addrs;
+    NSMutableArray *result = [NSMutableArray array];
+    for (addr = addrs; addr; addr = addr->ai_next) {
+        char host[NI_MAXHOST];
+        memset(host, 0, NI_MAXHOST);
+        getnameinfo(addr->ai_addr, addr->ai_addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST);
+        if (strlen(host) != 0) {
+            [result addObject:[NSString stringWithUTF8String:host]];
+        }
+    }
+    freeaddrinfo(addrs);
+
+    NSLogToFile(@"Info: DNS with domain:%@ -> %@", domain, result);
+    return result;
+}
 
 ```
