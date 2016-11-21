@@ -25,33 +25,41 @@ tags:
 **官方描述：** Spin locks are a simple, fast, thread-safe synchronization primitive that is suitable in situations where contention is expected to be low. The spinlock operations use memory barriers to synchronize access to shared memory protected by the lock. Preemption is possible while the lock is held.
 
 #### 2、dispatch_semaphore
+
  dispatch_semaphore是信号量，但当信号总量设为 1 时也可以当作锁来。在没有等待情况出现时，它的性能比 pthread_mutex 还要高，但一旦有等待情况出现时，性能就会下降许多。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。对磁盘缓存来说，它比较合适。
 
 #### 3、使用NSLock实现的锁
 忽略；
 
 #### 4、使用synchronized关键字构建的锁。
+
 @synchronized指令使用的obj为该锁的唯一标识，只有当标识相同时，才为满足互斥，如果线程2中的@synchronized(obj)改为@synchronized(other),刚线程2就不会被阻塞，@synchronized指令实现锁的优点就是我们不需要在代码中显式的创建锁对象，便可以实现锁的机制，但作为一种预防措施，@synchronized块会隐式的添加一个异常处理例程来保护代码，该处理例程会在异常抛出的时候自动的释放互斥锁。所以如果不想让隐式的异常处理例程带来额外的开销，你可以考虑使用锁对象。
 
 #### 5、使用C语言的pthread_mutex_t实现的锁。
+
 pthread_mutex_t定义在pthread.h，所以记得#include，底层的API还是性能比较高啊，在各种同步对象中，性能属于佼佼者。
 
 #### 6、NSConditionLock、NSCondition条件锁：
+
 当我们在使用多线程的时候，有时一把只会lock和unlock的锁未必就能完全满足我们的使用。因为普通的锁只能关心锁与不锁，而不在乎用什么钥匙才能开锁，而我们在处理资源共享的时候，多数情况是只有满足一定条件的情况下才能打开这把锁。与特定的，用户定义的条件有关。可以确保一个线程可以获取满足一定条件的锁。 内部会涉及到信号量机制，一旦一个线程获得锁后，它可以放弃锁并设置相关条件;其它线程竞争该锁。 线程之间的竞争激烈，涉及到条件锁检测，线程间通信。系统调用，上下切换方切换比较频繁
 
-#### 7、NSRecursiveLock递归锁 ，
+#### 7、NSRecursiveLock递归锁
+
 也就说可以锁多次，@synchronized也是递归锁；
 
 #### 8、NSDistributedLock分布式锁  
+
 （忽略）
 
 ### 耗时方面：
+
 - OSSpinlock耗时最少;
 - pthread_mutex其次。
 - NSLock/NSCondition/NSRecursiveLock 耗时接近，上下居中。
 - NSConditionLock最差，我们常用synchronized倒数第二。
 
 ### 结论：
+
 - 如果只是粗略的使用锁，不考虑性能问题可以使用synchronized。
 - 如果对效率有较高的要求，还是采用OSSpinlock比较好。
 - 因为Pthread的锁在也是用 OSSpinlock 实现的。OSSpinlock 的实现过程中，并没有进入系统kernel，使用OSSpinlock可以节省系统调用和上下文切换。
