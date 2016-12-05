@@ -164,7 +164,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 	int optval = 1;
 	setsockopt(CFSocketGetNative(_socket), SOL_SOCKET, SO_REUSEADDR, // 允许重用本地地址和端口
 			   (void *)&optval, sizeof(optval));
-
 	struct sockaddr_in addr4;
 	memset(&addr4, 0, sizeof(addr4));
 	addr4.sin_len = sizeof(addr4);
