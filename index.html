@@ -1,0 +1,37 @@
+---
+title: kissdata &#58; keep it simple &#38; stupied by data
+layout: default
+comments: false
+---
+
+<h1>{{ page.title }}</h1>
+
+<hr class="small-margin" />
+
+<div>
+    {% for post in paginator.posts %}
+    <div class="post-card">
+        <div class="head"><a href="{{ post.url }}"><span class="title">{{ post.title }}</span></a><span class="date">{{ post.date | date:"%Y-%m-%d" }}</span></div>
+        <div class="content">{{ post.excerpt }}</div>
+        <div class="more text-right"><a href="{{ post.url }}">继续阅读全文</a></div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="nav-post-links">
+        {% if paginator.previous_page %}
+        <span class="newer-posts-link">
+            {% if 1 == paginator.previous_page %}
+                <a href="/">&laquo; Newer Posts</a>
+            {% else %}
+                <a href="/page{{ paginator.previous_page }}" title="previous page">&laquo; Newer Posts</a>
+            {% endif %}
+        </span>
+        {% endif %}
+
+        {% if paginator.next_page %}
+        <span class="older-posts-link">
+            <a href="{{ paginator.next_page_path }}" title="next page">Older Posts &raquo;</a>
+        </span>
+        {% endif %}
+</div>

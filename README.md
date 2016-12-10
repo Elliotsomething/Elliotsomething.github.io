@@ -1,8 +1,17 @@
-#一点点说明
+website: [kissdata](http://blog.kissdata.com)
 
-这是[mukosame.github.io](http://mukosame.github.io)的示例代码，第一个能用的，干净的，完全可以作为模板和基础的版本
-* 感谢来自于beiyuu的设计(http://beiyuu.com/)
-* 希望你喜欢
-* 欢迎star
-* 欢迎fork
-* Happy hacking ^_^
+### Features of this template:
+
+- base on bootstrap v3
+- post tags will be listed in the meta `keywords` of the html head
+- use google-code-prettify to highlight code
+- have a 'go to top' flow button
+- integrate many services, such as, disqus or duoshuo for comments, google analytics or cnzz for website statics. If you don't want one of them, just comment of delete it in `_config.yml`
+
+
+
+### If you want to use this template, please do following setups:
+
+- delete all posts under `_posts`
+- modify somethings in `_config.yml`, I believe you can understand how to modify by those comments
+- there are some google adsense, if you want to delete them, you can modify `_layouts/page.html` and `_includes/side.html` by those comments in the html files.

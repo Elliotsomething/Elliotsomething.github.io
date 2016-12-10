@@ -1,10 +1,89 @@
-markdown: rdiscount
-highlighter: 'pygments'
-pygments: true
-paginate: 10
-permalink: /title
+### jekyll params
+permalink: /:year/:month/:day/:title.html
+paginate: 5
+timezone: Asia/Shanghai
+excerpt_separator: "\n\n\n\n"
 
-title: Elliot
-url: "https://elliotsomething.github.io/" 
-feed: /atom.xml
-author_info: <a href="https://Elliotsomething.github.io/">Mukosame</a>
+
+### self params
+site_name: kissdata
+site_description: keep it simple &#38; stupid by data | 爱小牛牛，爱生活
+url: http://blog.kissdata.com
+author: vincentzhwg
+author_github_url: https://github.com/vincentzhwg
+author_email: vincentzhwg@gmail.com
+
+## if you don't want something below, just comment it or delete it. But if you want to use, please change your ids.
+#duoshuo_short_name: kissdata
+#disqus_shortname: kissdata
+#google_analytics_ua: UA-52060953-1
+cnzz_id: 1253396463
+
+
+
+### jekyll params
+defaults:
+    - 
+        scope:
+            path: ""
+            type: "posts"
+        values:
+            layout: "page"
+            comments: "true"
+    - 
+        scope:
+            path: "lua"
+        values:
+            category: "lua"
+    - 
+        scope:
+            path: "life"
+        values:
+            category: "life"
+    - 
+        scope:
+            path: "linux"
+        values:
+            category: "linux"
+    - 
+        scope:
+            path: "java"
+        values:
+            category: "java"
+    - 
+        scope:
+            path: "python"
+        values:
+            category: "python"
+    - 
+        scope:
+            path: "hadoop"
+        values:
+            category: "hadoop"
+    - 
+        scope:
+            path: "hbase"
+        values:
+            category: "hbase"
+    - 
+        scope:
+            path: "bigdata"
+        values:
+            category: "bigdata"
+    - 
+        scope:
+            path: "design"
+        values:
+            category: "design"
+    - 
+        scope:
+            path: "vim"
+        values:
+            category: "vim"
+    - 
+        scope:
+            path: "dada"
+        values:
+            layout: "dada_page"
+            category: "小牛牛的happiness"
+
