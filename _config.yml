@@ -1,10 +1,10 @@
-
-#markdown: rdiscount
+markdown: rdiscount
 highlighter: 'pygments'
-#paginate: 8
-permalink: /:title
+pygments: true
+paginate: 10
+permalink: /title
 
-title: Elliot
-url: https://Elliotsomething.github.io
+title: Elliot
+url: "https://elliotsomething.github.io/" 
 feed: /atom.xml
 author_info: <a href="https://Elliotsomething.github.io/">Mukosame</a>
