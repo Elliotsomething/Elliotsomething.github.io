@@ -39,21 +39,20 @@ header-img: "img/about-bg.jpg"
     <blockquote><p>Yet another Web Developer. <br>
     Yet another Life-long Designer.</p></blockquote>
 
-    <p>Hi, I am <strong>Huang Xuan(黄玄)</strong>，you can call me <strong>Hux</strong>. I'm an engineer &amp; a designer who loves to build software such as <a href="http://yanshuo.io">Yanshuo.io</a> and more (<a href="/portfolio">Portfolio 👉</a> and <a href="http://github.com/huxpro">Github 👉</a>). I studied Digital Media Art and graduated from <a href="https://en.wikipedia.org/wiki/Communication_University_of_China">Communication University of China</a> in 2016.</p>
+    <p>Hi, I am <strong>Yang Hao(杨浩)</strong>，you can call me <strong>Elliot</strong>. I'm an engineer &amp; a designer .</p>
 
-    <p>As an engineer, I worked at Wepiao (<a href="https://www.crunchbase.com/organization/wepiao#/entity">see CrunchBase</a>) as the dev lead of Front-End Infrastructure Team, and used to intern at <a href="https://www.alitrip.com/">Alibaba Trip</a> for one year. As a designer, I was offered to be the UI/UX Designer Intern of Alibaba, Microsoft etc.</p>
+    <p>As an engineer, I worked at Sanfor/koudaizhuli etc.</p>
 
-    <p>Moreover, I'm also a translator at <a href="http://www.gfansub.com/">GDG China Subtitle Team</a>, maintainer at <a href="http://zhuanlan.zhihu.com/FrontendMagazine">Frontend Magazine</a> and the owner of <a href="http://zhuanlan.zhihu.com/huxblog">Lifelong Romantic Geek</a>.</p>
 
     <h5>Talks</h5>
 
-    <ul>
+    <!-- <ul>
     <li><a href="//huangxuan.me/2016/11/20/sw-101-gdgdf/">Service Worker 101, working offline and instant loading · GDG DevFest 2016 Beijing</a></li>
     <li><a href="//huangxuan.me/2016/10/20/pwa-qcon2016/">Progressive Web Apps, make web great again · QCon Shanghai 2016</a></li>
     <li><a href="//huangxuan.me/2016/06/05/pwa-in-my-pov/">Progressive Web App in my pov · 2016</a></li>
     <li><a href="//huangxuan.me/2015/12/28/css-sucks-2015/">CSS Still Sucks 2015, and how we work around it · 2015</a></li>
     <li><a href="//huangxuan.me/2015/07/09/js-module-7day/">JavaScript Modularization Journey · 2015</a></li>
-    </ul>
+    </ul> -->
 </div>
 
 <!-- Handle Language Change -->
@@ -98,25 +97,25 @@ header-img: "img/about-bg.jpg"
 
 
 
-{% if site.duoshuo_username %}
+<!-- {% if site.duoshuo_username %} -->
 <!-- 多说评论框 start -->
-<div class="comment">
+<!-- <div class="comment"> -->
     <!-- This id is used for indexing my loss comments forcedly -->
-    <div class="ds-thread"
+    <!-- <div class="ds-thread"
     {% if site.duoshuo_username == "elliotsomething" %}
         data-thread-id="1187623191091085319"
-    {% else %}
+    {% else %} -->
     <!-- U can just use this key generated to index comments at page about -->
-        data-thread-key="{{site.duoshuo_username}}/about"
+        <!-- data-thread-key="{{site.duoshuo_username}}/about"
     {% endif %}
 
     data-title="{{page.title}}"
     data-url="{{site.url}}/about/"></div>
-</div>
+</div> -->
 <!-- 多说评论框 end -->
 
 <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
+<!-- <script type="text/javascript">
     // dynamic User hacking by Hux
     var _user = '{{site.duoshuo_username}}';
 
@@ -130,22 +129,22 @@ header-img: "img/about-bg.jpg"
         (document.getElementsByTagName('head')[0]
          || document.getElementsByTagName('body')[0]).appendChild(ds);
     })();
-</script>
+</script> -->
 <!-- 多说公共JS代码 end -->
-{% endif %}
+<!-- {% endif %} -->
 
 
-{% if site.disqus_username %}
+<!-- {% if site.disqus_username %} -->
 <!-- disqus 评论框 start -->
-<div class="comment">
+<!-- <div class="comment">
     <div id="disqus_thread" class="disqus-thread">
 
     </div>
-</div>
+</div> -->
 <!-- disqus 评论框 end -->
 
 <!-- disqus 公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
+<!-- <script type="text/javascript">
     /* * * CONFIGURATION VARIABLES * * */
     var disqus_shortname = "{{site.disqus_username}}";
     var disqus_identifier = "{{site.disqus_username}}/{{page.url}}";
@@ -156,6 +155,6 @@ header-img: "img/about-bg.jpg"
         dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
-</script>
+</script> -->
 <!-- disqus 公共JS代码 end -->
-{% endif %}
+<!-- {% endif %} -->
