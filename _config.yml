@@ -1,45 +1,11 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
+auto: true
 
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
+#markdown: rdiscount
+highlighter: 'pygments'
+#paginate: 8
+permalink: /:title
+
 title: Elliot
-email: 546598980@qq.com
-description: > # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
-baseurl: ""
-url: "https://elliotsomething.github.io/" 
-twitter_username: jekyllrb
-github_username:  Elliotsomething
-
-# Build settings
-markdown: rdiscount
-theme: minima
-pygments: true
-paginate: 10
-paginate_file: blog.html
- 
- 
-gems:
-  - jekyll-feed
-  
-  
-gems: [jekyll-coffeescript, jekyll-watch, jekyll-assets]
-# This will require each of these gems automatically.
- 
- 
-exclude:
-  - Gemfile
-  - Gemfile.lock
+url: http://mukosame.github.io
+feed: /atom.xml
+author_info: <a href="http://Elliotsomething.github.io/">Mukosame</a>
