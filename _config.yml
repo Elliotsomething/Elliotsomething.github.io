@@ -63,7 +63,7 @@ duoshuo_share: false                     # set to false if you want to use Comme
 # ba_track_id: [your track id]
 
 # Google Analytics
-ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+ga_track_id: ''            # Format: UA-xxxxxx-xx
 ga_domain: auto
 
 
