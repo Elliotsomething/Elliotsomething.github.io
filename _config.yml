@@ -64,7 +64,7 @@ duoshuo_share: false                     # set to false if you want to use Comme
 
 # Google Analytics
 ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-ga_domain: Elliotsomething.github.io
+ga_domain: auto
 
 
 
