@@ -1,0 +1,58 @@
+---
+layout:     post
+title:      "ios一种简单的方法加密"
+subtitle:   "A simple method of encryption in iOS"
+date:       2016-12-12
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 私有API
+    - 加密
+---
+
+### ios一种简单的方法加密
+
+对于需要上线Appstore的项目，几乎很少会用到私有API，因为Appstore审核不会让你通过；
+
+但是如果一旦需要用到私有API的话，那就蛋疼了；因为你要冒着项目被拒的风险。
+
+而如果是直接在项目中使用私有API的话，是百分百会被拒的，那么怎么不直接私有API呢？
+
+**有几种方案觉得可行：**
+
+1. 对方法名进行字符串混淆替换，这种方案比较简单，基本只要知道混淆的，或者知道字符串替换的就能搞定；
+2. 对字节进行拼接，之后再合成方法名，生成SEL；这种方法比较高级，你还可以在里面进行其他加密操作；
+3. 其他方案类似；
+
+### 举个例子：
+
+这是个简单加密后的`recursiveDescription`字符串，是私有api，所以通过字符串拼接的方式生成`selector`进行方法调用
+
+```objective_c
+//这种加密的方式目的是想绕过AppStore的审核，从而使用私有API
+static unsigned char uiStackSelectorBinary[] = {0xcd,0xe4,0xde,0xd4,0xcd,0xce,0xd8,0xd1,0xe4,0xc3,0xe4,0xce,0xde,0xcd,0xd8,0xcf,0xd3,0xd8,0xda,0xd9};
+unsigned char selector[128] = {0};
+for(int i = 0; i < sizeof(uiStackSelectorBinary); i++) {    
+    unsigned char c = uiStackSelectorBinary[i]; //变成ASCII码
+    selector[i] = (c-0xa5)^0x5a;
+}
+SEL sel = NSSelectorFromString([NSString stringWithUTF8String:(char *)selector]);
+
+```
+
+当然，这两种方案本人都没有试过，哈哈！
+
+### 彩蛋：
+
+**在这里我是假设Appstore的审核机制：**
+
+1. 直接扫描项目字符串，然后和私有API的库进行对比，发现存在使用私有API，直接打回原形
+2. 如果对比之后没有发现，则在运行时检测，在方法缓存hashtable中检测，是否使用私有API
+
+对于第二步，只有在运行到那段代码处，才有可能会被检测出来，如果没有运行到该私有API的代码处，则有可能检测不出来；这也是本人觉得上述方案可以绕过审核的原因；
+
+当然以上都是本人猜测；如有错误，纯属瞎编，娱乐一下就好。
+
+主要是提供一种混淆代码的方法供大家参考，还可以玩出很多花样来哦。
