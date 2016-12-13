@@ -97,7 +97,13 @@ featured-condition-size: 1              # A tag will be featured if the size of 
 chrome-tab-theme-color: "#000000"
 service-worker: true
 
-
+navigation:
+  - title: Archive
+    url: /Archives
+  - title: About
+    url: /About
+  - title: TAGS
+    url: /Tags
 
 # Friends
 friends: [
