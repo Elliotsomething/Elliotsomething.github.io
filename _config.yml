@@ -101,9 +101,9 @@ navigation:
   - title: Archive
     url: /Archives
   - title: About
-    url: /About
+    url: /about
   - title: TAGS
-    url: /Tags
+    url: /tags
 
 # Friends
 friends: [
