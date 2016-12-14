@@ -1,0 +1,74 @@
+---
+layout:     post
+title:      "iOS 之 多线程CoreData"
+subtitle:   "Multithreading with Core Data on iOS"
+date:       2015-12-28
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - CoreData
+    - 多线程
+    - 译
+---
+
+### iOS 之多线程CoreData
+
+译：[Multithreading with Core Data on iOS.](http://cutecoder.org/programming/multithreading-core-data-ios/)
+
+
+不久前我根本没有意识到多线程`coredata`，直到Mac lion系统出来那天。但是随着`iOS5`中上下文`context`层次的出现和`block`使用的流行，多线程`coredata`变得触手可及。
+当我就职于Resonate时，我发现有一些项目应用是用多线程写的，期间通过了大量的试错和崩溃。下面我将把这些分享出来让你们不再犯同样的错误。
+
+尽管我使用了多线程这个单词，但是可能的是你不需要直接的去处理使用线程。使用操作队列对你大部分的处理机制是一种比较好的方法。把你的算法做一个简单的封装，然后放到`NSOperationQueue`中去管理他们。还有不要直接创建`NSThread`实例除非你有足够的理由为什么要这样做。
+
+### 在`Coredata`中使用`UIManagedDocument`：
+
+确实，当你等着在`iOS5`中使用`Coredata`时，你可能会想要用`UIManagedDocument`，至少用这个类来管理你的`Coredata`栈，现在就是，你可以用它来管理你的`Coredata`实例`NSManagedObjectContext`, `NSPersistentStoreCoordinator`或者其他部分。
+
+甚至如果你需要共享`Coredata`类给你的MacAPP，你也可以将你的实体类分隔开并且在两个不同的平台上云运行。如果你觉得`UIManagedDocument`不够好，那么请给出你的理由。
+
+当你使用`UIManagedDocument`的时候，你会得到一系列的相关联的`NSManagedObjectContext`实例。用一个`main context`作为`GUI`界面对象，用一个`root context`作为`main context`的`parent`，用来异步的存储数据到`persistent storage`（数据库）中。当正在处理数据的`context`被创建时你不应该直接去保存他们，而是要绕过`undo`和很多其他底层的东西。`UIManagedDocument`可以为你周期性的用正确的顺序自动保存他们。
+
+### 使用上下级结构的`context`来管理对象：
+
+从构建这个模块开始，我进一步建议使用新的`context`层次结构，这在iOS中确实能够很好的提高效率。
+1. 使用`root context`来存储从网络获取的数据
+2. 使用`main context`来为界面GUI组件和其他需要在主线程操作的对象
+3. 为需要后台处理数据的任务创建单独的工作`context`作为`main context`的`children context`
+
+<img src="https://Elliotsomething.GitHub.io/images/post-CoreData-01.png">
+
+### 使用`root context`来处理网络请求
+
+作为一个推特用户，当推特请求最新数据的时候我们都会产生这样一些共鸣，当网络请求返回`JSON`数据的时候，他会直接调用`root context`的操作队列来存储数据到管理对象中。（阻塞主线程，这样用户体验不好）
+你可以换一个模式，用异步逻辑执行网络请求，然后解析返回数据，最后再你的`root context`里执行`performBlock`到后台来存储解析后的数据。
+你可以看看下图的模式，很明显的阐述了用户在`ViewController`通过一系列动作刷新界面的过程。如果你用`ASIHTTPRequest`来请求网络的话，可以采用异步逻辑。当请求完成时，你可以把原始数据放到一个操作队列里去解析他（这里使用``+[ASIHTTPRequest sharedQueue]``会非常方便），当解析完数据之后，在使用`root context`的私有队列去更新数据到数据管理对象中。在更新数据之后，将所有更新的数据对象的IDs返回到主线程给你的`ViewController`去更新界面，注意这里不能在两个线程之间传递实际的数据管理对象（`managed object instances`），因为这样会造成很严重的问题。
+
+<img src="https://Elliotsomething.GitHub.io/images/post-CoreData-02.png">
+
+这种方法的附加说明就是需要分隔网络返回数据和用户编辑数据，`root context`不允许直接被用户编辑，（而应该是让子`context`保存数据时来更新数据），这样就可以防止当`UIManagedDocument`去保存数据到`context`里时造成冲突了。
+
+### 在任务线程队列里使用多个子`context`
+
+如果你需要做一些大量的数据处理的话，最好是把他放到后台线程队列中去而不是主线程中。但是想要真的让你的app迅速响应，任何只要超过半秒的操作都应该移出主线程，尤其是`iOS`设备的`CPU`要比`OS X`的慢很多。
+
+那么那些放到后台的操作应该使用自己私有的`NSManagedObjectContext`实例对象，建议这些`context`都把他们设为`main context`的子`context`。因为这些子`context`的操作完成之后，当存储（`save`）数据时其结果会被“pushed”到主线程中。这也让后台线程中的`NSManagedObjectContext`刷新时，界面也能获得更新的对象。不过既然你创建了子`context`，那么你就应该负责存储他们的数据—不像`main context`和`root context`一样被`UIManagedDocument`自动保存数据。
+
+**怎么样去使用呢？**
+
+参考下面的时序图：通常`View controller`创建任务执行类（属于`NSOperation`的实例），作为任务类初始化配置的一部分，`View controller`会将其`context`作为任务类的父`context`来使用。然后任务类就可以创建自己的私有的`NSManagedObjectContext`实例对象来临时存储数据了，在任务类完成之前（应该是释放之前），他可以通过将数据存储到他私有的`context`里来传递修改的数据到主线程中的`context`。
+
+<img src="https://Elliotsomething.GitHub.io/images/post-CoreData-03.png">
+
+### 总结：
+
+现在你已经了解了在`coredata`中多线程的高效使用了，尽管这篇文章专注于iOS，但是在`OS X`上他的原理是一样的。以上你可以学到：
+·使用`UIManagedDocument`来管理你的`coredata`栈
+·新的`NSManagedObjectContext`架构（上下级的`context`）
+·怎样在每个层级的`context`中使用不同的操作类型（网络刷新请求，主线程、界面刷新，任务线程）
+
+### 著作权声明
+
+本文译自 [Multithreading with Core Data on iOS](http://cutecoder.org/programming/multithreading-core-data-ios/)。由 [@杨浩](https://www.zhihu.com/people/Elliotsomething) 翻译，转载请保留原文链接 ;)
