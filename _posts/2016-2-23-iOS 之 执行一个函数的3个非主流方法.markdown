@@ -1,0 +1,117 @@
+---
+layout:     post
+title:      "iOS之执行一个函数的3种方法"
+subtitle:   "Three ways to Call a function!"
+date:       2016-2-23
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - IMP
+    - 函数
+---
+
+### 执行一个函数的3种方法
+
+在iOS中调用方法也就是发送消息，实际会被转化为IMP调用函数执行；那么如果我们能够跳过发送消息这一步的话，是可以优化执行时间的；这也是一个优化思路，只是这种优化效率太低了，基本可以忽略；但是我们还是可以了解一下；
+
+#### 先讲一下系统IMP函数
+
+默认情况下，系统自带的IMP被定义为无参数无返回值的函数;
+```objective_c
+typedef void (*_VIMP) (id, SEL, ...);
+```
+
+我这里重新定义IMP，有参数，带返回值和不带返回值；
+```objective_c
+typedef id(*_IMP) (id, SEL, ...);
+```
+
+新建一个类，实例对象为`yh_self`，为`yh_self`添加一个方法，其函数名为`@selector(testDoSome:with:)`，函数实现为`(IMP)invokeMethodForEffctive`
+
+- `pagrm id` 实例对象  `yh_self`
+- `pagrm SEL` 方法指针 `@selector(testDoSome:with:)`
+- `pagrm IMP` 函数入口 `(IMP)invokeMethodForEffctive`
+
+**为一个实例添加一个没有的方法，然后我们去用3个方案执行这个函数**
+
+```objective_c
+void todoSomething(id yh_self, SEL name, ...){
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wundeclared-selector"
+  class_addMethod([yh_self class], @selector(testDoSome:with:), (IMP)invokeMethodForEffctive, "v@:@i");
+  #pragma clang diagnostic pop
+}
+```
+**需要注意的是需要忽略编译警告，不然会有警告**
+
+#### 强制执行一个方法 1
+
+用 `performSelector` 去调用，有参数限制，最多两个
+```objective_c
+[yh_self performSelector:@selector(testDoSome:with:) withObject:@"adfas" withObject:@"1111"];
+```
+
+#### 强制执行一个方法 2
+转成`IMP`函数入口（相当于C语言的函数指针），然后直接调用`IMP`，无参数限制
+```objective_c
+Method m2 = class_getInstanceMethod([yh_self class], @selector(testDoSome:with:));
+_VIMP balbal = (_VIMP)method_getImplementation(m2);
+balbal(yh_self,@selector(testDoSome:with:),@"111",222);
+```
+
+#### 强制执行一个方法 3
+用`NSInvocation`类来调用，无参数限制
+```objective_c
+NSMethodSignature * methodSignature  = [[yh_self class] instanceMethodSignatureForSelector:@selector(testDoSome:with:)];
+NSInvocation * invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
+[invocation setTarget:yh_self];
+[invocation setSelector:name];
+NSString *a=@"111";
+int b=2;
+[invocation setArgument:&a atIndex:2];
+[invocation setArgument:&b atIndex:3];
+[invocation retainArguments];
+[invocation invoke];
+```
+
+完整的DEMO代码如下：
+```objective_c
+typedef void (*_VIMP) (id, SEL, ...);
+typedef id(*_IMP) (id, SEL, ...);
+
+void todoSomething(id yh_self, SEL name, ...){
+  //忽略编译警告
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wundeclared-selector"
+
+  class_addMethod([yh_self class], @selector(testDoSome:with:), (IMP)invokeMethodForEffctive, "v@:@i");
+
+  // 1 performSelector
+  [yh_self performSelector:@selector(testDoSome:with:) withObject:@"adfas" withObject:@"1111"];
+
+  // 2 调用IMP执行
+  Method m2 = class_getInstanceMethod([yh_self class], @selector(testDoSome:with:));
+  _VIMP balbal = (_VIMP)method_getImplementation(m2);
+  balbal(yh_self,@selector(testDoSome:with:),@"111",222);
+
+  // 3 用NSInvocation类来调用
+  NSMethodSignature * methodSignature  = [[yh_self class] instanceMethodSignatureForSelector:@selector(testDoSome:with:)];
+  NSInvocation * invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
+  [invocation setTarget:yh_self];
+  [invocation setSelector:name];
+  NSString *a=@"111";
+  int b=2;
+  [invocation setArgument:&a atIndex:2];
+  [invocation setArgument:&b atIndex:3];
+  [invocation retainArguments];
+  [invocation invoke];
+
+  #pragma clang diagnostic pop
+}
+
+void invokeMethodForEffctive(id yh_self, SEL name, ...){
+    //todo
+}
+```
