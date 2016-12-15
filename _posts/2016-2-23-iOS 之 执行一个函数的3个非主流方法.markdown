@@ -19,11 +19,13 @@ tags:
 #### 先讲一下系统IMP函数
 
 默认情况下，系统自带的IMP被定义为无参数无返回值的函数;
+
 ```objective_c
 typedef void (*_VIMP) (id, SEL, ...);
 ```
 
 我这里重新定义IMP，有参数，带返回值和不带返回值；
+
 ```objective_c
 typedef id(*_IMP) (id, SEL, ...);
 ```
@@ -49,12 +51,14 @@ void todoSomething(id yh_self, SEL name, ...){
 #### 强制执行一个方法 1
 
 用 `performSelector` 去调用，有参数限制，最多两个
+
 ```objective_c
 [yh_self performSelector:@selector(testDoSome:with:) withObject:@"adfas" withObject:@"1111"];
 ```
 
 #### 强制执行一个方法 2
 转成`IMP`函数入口（相当于C语言的函数指针），然后直接调用`IMP`，无参数限制
+
 ```objective_c
 Method m2 = class_getInstanceMethod([yh_self class], @selector(testDoSome:with:));
 _VIMP balbal = (_VIMP)method_getImplementation(m2);
@@ -63,6 +67,7 @@ balbal(yh_self,@selector(testDoSome:with:),@"111",222);
 
 #### 强制执行一个方法 3
 用`NSInvocation`类来调用，无参数限制
+
 ```objective_c
 NSMethodSignature * methodSignature  = [[yh_self class] instanceMethodSignatureForSelector:@selector(testDoSome:with:)];
 NSInvocation * invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
@@ -77,6 +82,7 @@ int b=2;
 ```
 
 完整的DEMO代码如下：
+
 ```objective_c
 typedef void (*_VIMP) (id, SEL, ...);
 typedef id(*_IMP) (id, SEL, ...);
