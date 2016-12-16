@@ -2,7 +2,7 @@
 layout:     post
 title:      "正则表达式(一)"
 subtitle:   "Regular Expressions"
-date:       2015-4-11
+date:       2015-4-3
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
