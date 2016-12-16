@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "iOS 之 Socket学习"
-subtitle:   ""
+subtitle:   "Socket Learning"
 date:       2015-8-29
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
@@ -42,27 +42,23 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 	server_addr.sin_port = htons(11332);
 	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	bzero(&(server_addr.sin_zero),8);
-
 	//创建socket
 	int server_socket = socket(AF_INET, SOCK_STREAM, 0);//SOCK_STREAM 有连接
 	if (server_socket == -1) {
 		perror("socket error");
 		return 1;
 	}
-
 	//绑定socket：将创建的socket绑定到本地的IP地址和端口，此socket是半相关的，只是负责侦听客户端的连接请求，并不能用于和客户端通信
 	int bind_result = bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	if (bind_result == -1) {
 		perror("bind error");
 		return 1;
 	}
-
 	//listen侦听 第一个参数是套接字，第二个参数为等待接受的连接的队列的大小，在connect请求过来的时候,完成三次握手后先将连接放到这个队列中，直到被accept处理。如果这个队列满了，且有新的连接的时候，对方可能会收到出错信息。
 	if (listen(server_socket, 5) == -1) {
 		perror("listen error");
 		return 1;
 	}
-
 	struct sockaddr_in client_address;
 	socklen_t address_len;
 	int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &address_len);
@@ -71,22 +67,17 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 		perror("accept error");
 		return -1;
 	}
-
 	char recv_msg[1024];
 	char reply_msg[1024];
-
 	while (1) {
 		bzero(recv_msg, 1024);
 		bzero(reply_msg, 1024);
-
 		printf("reply:");
 		scanf("%s",reply_msg);
 		send(client_socket, reply_msg, 1024, 0);
-
 		long byte_num = recv(client_socket,recv_msg,1024,0);
 		recv_msg[byte_num] = '\0';
 		printf("client said:%s\n",recv_msg);
-
 	}
 ```
 
@@ -110,7 +101,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 	server_addr.sin_port = htons(11332);
 	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	bzero(&(server_addr.sin_zero),8);
-
 	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_socket == -1) {
 		perror("socket error");
@@ -118,7 +108,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 	}
 	char recv_msg[1024];
 	char reply_msg[1024];
-
 	if (connect(server_socket, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_in))==0)     {
 		//connect 成功之后，其实系统将你创建的socket绑定到一个系统分配的端口上，且其为全相关，包含服务器端的信息，可以用来和服务器端进行通信。
 		while (1) {
@@ -134,7 +123,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 				perror("send error");
 			}
 		}
-
 	}
 ```
 
@@ -161,7 +149,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 		NULL, // 一个定义在上面指针中的retain的回调， 可以为NULL
 		NULL,
 		NULL};
-
 	_socket = CFSocketCreate(kCFAllocatorDefault, // 为新对象分配内存，可以为nil
 							 PF_INET, // 协议族，如果为0或者负数，则默认为PF_INET
 							 SOCK_STREAM, // 套接字类型，如果协议族为PF_INET,则它会默认为SOCK_STREAM
@@ -174,7 +161,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 		NSLog(@"Cannot create socket!");
 		return 0;
 	}
-
 	int optval = 1;
 	setsockopt(CFSocketGetNative(_socket), SOL_SOCKET, SO_REUSEADDR, // 允许重用本地地址和端口
 			   (void *)&optval, sizeof(optval));
@@ -186,7 +172,6 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 	addr4.sin_port = htons(8080);
 	addr4.sin_addr.s_addr = htonl(INADDR_ANY);
 	CFDataRef address = CFDataCreate(kCFAllocatorDefault, (UInt8 *)&addr4, sizeof(addr4));
-
 	if (kCFSocketSuccess != CFSocketSetAddress(_socket, address))
 	{
 		NSLog(@"Bind to address failed!");
@@ -195,13 +180,11 @@ Socket其实就是tcp连接，当客户端与服务端三次握手之后就一�
 		_socket = NULL;
 		return 0;
 	}
-
 	CFRunLoopRef cfRunLoop = CFRunLoopGetCurrent();
 	CFRunLoopSourceRef source = CFSocketCreateRunLoopSource(kCFAllocatorDefault, _socket, 0);
 	CFRunLoopAddSource(cfRunLoop, source, kCFRunLoopCommonModes);
 	CFRunLoopRun();
 	CFRelease(source);
-
 	return 1;
 }
 
@@ -210,8 +193,6 @@ static void SocketConnectionAcceptedCallBack(CFSocketRef socket,
 											 CFSocketCallBackType type,
 											 CFDataRef address,
 											 const void *data, void *info) {
-
-
 	if (kCFSocketAcceptCallBack == type)
 	{
 		// 本地套接字句柄
