@@ -1,0 +1,59 @@
+---
+layout:     post
+title:      "缓存策略"
+subtitle:   "Cache policy"
+date:       2015-4-11
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 缓存策略
+    - 操作系统
+---
+
+### 常用的缓存策略
+
+如果想要自己实现一套缓存框架的话，常用的缓存策略都是需要了解一下的，不能只知道FIFO；
+
+这里介绍三种操作系统中的三种缓存策略；各有优缺点，可以根据项目的实际情况选择；
+
+**目的：** 当缓存需要被清理时（比如空间占用已经接近临界值了），需要使用某种淘汰算法来决定清理掉哪些数据。
+
+### 缓存淘汰算法有下面几种
+
+#### FIFO：First In First Out
+先进先出。判断被存储的时间，离目前最远的数据优先被淘汰。
+
+#### LRU：Least Recently Used
+最近最少使用。判断最近被使用的时间，目前最远的数据优先被淘汰。
+核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”。
+
+#### LFU：Least Frequently Used
+最不经常使用。在一段时间内，数据被使用次数最少的，优先被淘汰。
+核心思想是“如果数据过去被访问多次，那么将来被访问的频率也更高”。
+
+### 实现思路
+
+#### FIFO：First In First Out实现思路
+
+维持一个固定长度队列，先入先出
+
+#### LRU：Least Recently Used实现思路
+
+<img src="https://Elliotsomething.GitHub.io/images/post-LRU.png">
+
+- 新数据插入到链表头部；
+- 每当缓存命中（即缓存数据被访问），则将数据移到链表头部；
+- 当链表满的时候，将链表尾部的数据丢弃。
+
+#### LFU：Least Frequently Used实现思路
+
+<img src="https://Elliotsomething.GitHub.io/images/post-LFU.png">
+
+- 新加入数据插入到队列尾部（因为引用计数为1）；
+- 队列中的数据被访问后，引用计数增加，队列重新排序；
+- 当需要淘汰数据时，将已经排序的列表最后的数据块删除。
+
+### 小结：
+缓存策略看起来很高大上，其实说起来很简单，就是根据不同的算法实现不同的策略，只要理解了核心思想，实现起来就容易了；
