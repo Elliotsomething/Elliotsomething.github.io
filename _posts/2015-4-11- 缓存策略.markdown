@@ -35,11 +35,11 @@ tags:
 
 ### 实现思路
 
-#### FIFO：First In First Out实现思路
+#### FIFO：实现思路
 
 维持一个固定长度队列，先入先出
 
-#### LRU：Least Recently Used实现思路
+#### LRU：实现思路
 
 <img src="https://Elliotsomething.GitHub.io/images/post-LRU.png">
 
@@ -47,7 +47,7 @@ tags:
 - 每当缓存命中（即缓存数据被访问），则将数据移到链表头部；
 - 当链表满的时候，将链表尾部的数据丢弃。
 
-#### LFU：Least Frequently Used实现思路
+#### LFU：实现思路
 
 <img src="https://Elliotsomething.GitHub.io/images/post-LFU.png">
 
