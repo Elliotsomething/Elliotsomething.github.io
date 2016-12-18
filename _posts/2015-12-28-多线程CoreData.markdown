@@ -13,6 +13,8 @@ tags:
     - 译
 ---
 
+**版权声明：本文为博主原创文章，未经博主允许不得转载**
+
 ### iOS 之多线程CoreData
 
 译：[Multithreading with Core Data on iOS.](http://cutecoder.org/programming/multithreading-core-data-ios/)

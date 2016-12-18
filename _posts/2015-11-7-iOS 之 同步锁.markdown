@@ -1,0 +1,225 @@
+---
+layout:     post
+title:      "iOS 之 同步锁"
+subtitle:   "Cache policy"
+date:       2015-11-7
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 缓存策略
+    - 操作系统
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载**
+
+### 了解iOS中的几种同步锁
+
+#### 1、OSSpinLock 自旋锁
+性能最高的锁。原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。对于内存缓存的存取来说，它非常合适。
+自旋锁几乎不进入内核，仅仅是重新加载自旋锁。 如果自旋锁被占用时间是几十，上百纳秒，性能还是挺高的。减少了代价较高的系统调用和一系列上下文言切换。 但是，该锁不是万能的;如果该锁抢占比较多的时候，不要使用该锁。会占用较多cpu,导致耗电较多。 这种情况下使用pthread_mutex或者dispatch_semaphore。虽然耗时多一点，但是避免了电量过多的消耗。是不错的选择。
+
+**官方描述：** Spin locks are a simple, fast, thread-safe synchronization primitive that is suitable in situations where contention is expected to be low. The spinlock operations use memory barriers to synchronize access to shared memory protected by the lock. Preemption is possible while the lock is held.
+
+#### 2、dispatch_semaphore
+ dispatch_semaphore是信号量，但当信号总量设为 1 时也可以当作锁来。在没有等待情况出现时，它的性能比 pthread_mutex 还要高，但一旦有等待情况出现时，性能就会下降许多。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。对磁盘缓存来说，它比较合适。
+#### 3、使用NSLock实现的锁
+忽略；
+
+#### 4、使用synchronized关键字构建的锁。
+@synchronized指令使用的obj为该锁的唯一标识，只有当标识相同时，才为满足互斥，如果线程2中的@synchronized(obj)改为@synchronized(other),刚线程2就不会被阻塞，@synchronized指令实现锁的优点就是我们不需要在代码中显式的创建锁对象，便可以实现锁的机制，但作为一种预防措施，@synchronized块会隐式的添加一个异常处理例程来保护代码，该处理例程会在异常抛出的时候自动的释放互斥锁。所以如果不想让隐式的异常处理例程带来额外的开销，你可以考虑使用锁对象。
+
+#### 5、使用C语言的pthread_mutex_t实现的锁。
+pthread_mutex_t定义在pthread.h，所以记得#include，底层的API还是性能比较高啊，在各种同步对象中，性能属于佼佼者。
+
+#### 6、NSConditionLock、NSCondition条件锁：
+当我们在使用多线程的时候，有时一把只会lock和unlock的锁未必就能完全满足我们的使用。因为普通的锁只能关心锁与不锁，而不在乎用什么钥匙才能开锁，而我们在处理资源共享的时候，多数情况是只有满足一定条件的情况下才能打开这把锁。与特定的，用户定义的条件有关。可以确保一个线程可以获取满足一定条件的锁。 内部会涉及到信号量机制，一旦一个线程获得锁后，它可以放弃锁并设置相关条件;其它线程竞争该锁。 线程之间的竞争激烈，涉及到条件锁检测，线程间通信。系统调用，上下切换方切换比较频繁
+
+#### 7、NSRecursiveLock递归锁 ，
+也就说可以锁多次，@synchronized也是递归锁；
+#### 8、NSDistributedLock分布式锁  
+（忽略）
+
+
+### 耗时方面：
+- OSSpinlock耗时最少;
+- pthread_mutex其次。
+- NSLock/NSCondition/NSRecursiveLock 耗时接近，上下居中。
+- NSConditionLock最差，我们常用synchronized倒数第二。
+
+### 结论：
+- 如果只是粗略的使用锁，不考虑性能问题可以使用synchronized。
+- 如果对效率有较高的要求，还是采用OSSpinlock比较好。
+- 因为Pthread的锁在也是用 OSSpinlock 实现的。OSSpinlock 的实现过程中，并没有进入系统kernel，使用OSSpinlock可以节省系统调用和上下文切换。
+
+
+### 最简单的死锁（在主线程调用同步）
+
+```objective_c
+dispatch_sync(dispatch_get_main_queue(), ^{
+     // do something
+});
+```
+### 下面是Demo
+
+```objective_c
+__weak typeof (self) weakself = self;
+
+///*************NSLock 锁对象***************/
+//  //主线程中
+//  NSLock *lock = [[NSLock alloc] init];
+//
+//  //线程1
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      [lock lock];
+//      [weakself method1];
+//      sleep(10);
+//      [lock unlock];
+//  });
+//
+//  //线程2
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      sleep(1);//以保证让线程2的代码后执行
+//      [lock lock];
+//      [weakself method2];
+//      [lock unlock];
+//  });
+
+
+
+
+
+///*************@synchronized 关键锁***************/
+//  //线程1
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      @synchronized(weakself){
+//          [weakself method1];
+//          sleep(10);
+//      }
+//  });
+//
+//  //线程2
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      sleep(1);
+//      @synchronized(weakself){
+//          [weakself method2];
+//      }
+//  });
+
+//
+///*************pthread_mutex_t 锁***************/
+//
+//  __block pthread_mutex_t mutex;
+//  pthread_mutex_init(&mutex, NULL);
+//
+//  //线程1
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      pthread_mutex_lock(&mutex);
+//      [weakself method1];
+//      sleep(5);
+//      pthread_mutex_unlock(&mutex);
+//  });
+//
+//  //线程2
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      sleep(1);
+//      pthread_mutex_lock(&mutex);
+//      [weakself method2];
+//      pthread_mutex_unlock(&mutex);
+//  });
+//
+//  /*************dispatch_semaphore_t GCD(信号量)锁***************/
+//
+//  /*dispatch_semaphore_create、dispatch_semaphore_signal、dispatch_semaphore_wait
+//  简单的介绍一下这三个函数，第一个函数有一个整形的参数，我们可以理解为信号的总量，dispatch_semaphore_signal是发送一个信号，自然会让信号总量加1，dispatch_semaphore_wait等待信号，当信号总量少于0的时候就会一直等待，否则就可以正常的执行，并让信号总量-1，根据这样的原理，我们便可以快速的创建一个并发控制来同步任务和有限资源访问控制*/
+//  dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+//
+//  //线程1
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+//      [weakself method1];
+//      sleep(10);
+//      dispatch_semaphore_signal(semaphore);
+//  });
+//
+//  //线程2
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      sleep(1);
+//      dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+//      [weakself method2];
+//      dispatch_semaphore_signal(semaphore);
+//  });
+//
+//
+///*************NSConditionLock  条件锁***************/
+//  /*这段代码执行顺序会有问题，如果线程2来不及锁又会被线程1锁住，这样线程2就不会执行。*/
+//  NSConditionLock *lock1 = [[NSConditionLock alloc]init];
+//  //线程1
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      for (int i=0 ; i<=2 ; i++){
+//          [lock1 lock];
+//          NSLog(@"线程1");
+//          sleep(2);
+//          [lock1 unlockWithCondition:i];
+//          sleep(2);
+//      }
+//  });
+//  //线程2
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      [lock1 lockWhenCondition:1];
+//      NSLog(@"线程2");
+//      [lock1 unlock];
+//  });
+
+
+//  //死锁
+//  __block NSString *stringValue;
+//  dispatch_sync(dispatch_get_main_queue(), ^{
+//      // __block variables aren't automatically retained
+//      // so we'd better make sure we have a reference we can keep
+//      stringValue = @"-------->>111122221111";
+//  });
+//  NSLog(@"%@",stringValue);
+
+//
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      [weakself method3:@"thread1"];
+//  });
+//
+//  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//      sleep(1);
+//      [weakself method3:@"thread1"];
+//  });
+
+}
+
+
+
+- (void)method1
+{
+    NSLog(@"%@",NSStringFromSelector(_cmd));
+
+    NSLog(@"%s",__FUNCTION__);
+}
+
+- (void)method2
+{
+    NSLog(@"%@",NSStringFromSelector(_cmd));
+    NSLog(@"%s",__func__);
+
+}
+
+
+- (void)method3:(NSString *)thread{
+    NSString *str = @"";
+    @synchronized(thread) {
+        str = thread;
+        sleep(3);
+    }
+
+    NSLog(@"%p",str);
+
+
+}  
+```
