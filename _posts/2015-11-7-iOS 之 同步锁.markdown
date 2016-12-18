@@ -1,20 +1,20 @@
 ---
 layout:     post
-title:      "iOS 之 同步锁"
-subtitle:   "Cache policy"
+title:      "iOS 之 Lock浅析"
+subtitle:   "Analysis of Lock In iOS"
 date:       2015-11-7
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
 tags:
     - iOS
-    - 缓存策略
-    - 操作系统
+    - Lock
 ---
 
 **版权声明：本文为博主原创文章，未经博主允许不得转载**
 
-### 了解iOS中的几种同步锁
+### Lock浅析
+本文旨在了解iOS中的几种锁；
 
 #### 1、OSSpinLock 自旋锁
 性能最高的锁。原理很简单，就是一直 do while 忙等。它的缺点是当等待时会消耗大量 CPU 资源，所以它不适用于较长时间的任务。对于内存缓存的存取来说，它非常合适。
@@ -22,8 +22,10 @@ tags:
 
 **官方描述：** Spin locks are a simple, fast, thread-safe synchronization primitive that is suitable in situations where contention is expected to be low. The spinlock operations use memory barriers to synchronize access to shared memory protected by the lock. Preemption is possible while the lock is held.
 
+
 #### 2、dispatch_semaphore
  dispatch_semaphore是信号量，但当信号总量设为 1 时也可以当作锁来。在没有等待情况出现时，它的性能比 pthread_mutex 还要高，但一旦有等待情况出现时，性能就会下降许多。相对于 OSSpinLock 来说，它的优势在于等待时不会消耗 CPU 资源。对磁盘缓存来说，它比较合适。
+
 #### 3、使用NSLock实现的锁
 忽略；
 
@@ -38,6 +40,7 @@ pthread_mutex_t定义在pthread.h，所以记得#include，底层的API还是性
 
 #### 7、NSRecursiveLock递归锁 ，
 也就说可以锁多次，@synchronized也是递归锁；
+
 #### 8、NSDistributedLock分布式锁  
 （忽略）
 
@@ -85,11 +88,6 @@ __weak typeof (self) weakself = self;
 //      [weakself method2];
 //      [lock unlock];
 //  });
-
-
-
-
-
 ///*************@synchronized 关键锁***************/
 //  //线程1
 //  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -171,8 +169,6 @@ __weak typeof (self) weakself = self;
 //      NSLog(@"线程2");
 //      [lock1 unlock];
 //  });
-
-
 //  //死锁
 //  __block NSString *stringValue;
 //  dispatch_sync(dispatch_get_main_queue(), ^{
@@ -193,33 +189,22 @@ __weak typeof (self) weakself = self;
 //  });
 
 }
-
-
-
 - (void)method1
 {
     NSLog(@"%@",NSStringFromSelector(_cmd));
-
     NSLog(@"%s",__FUNCTION__);
 }
-
 - (void)method2
 {
     NSLog(@"%@",NSStringFromSelector(_cmd));
     NSLog(@"%s",__func__);
-
 }
-
-
 - (void)method3:(NSString *)thread{
     NSString *str = @"";
     @synchronized(thread) {
         str = thread;
         sleep(3);
     }
-
     NSLog(@"%p",str);
-
-
 }  
 ```
