@@ -1,0 +1,15 @@
+---
+layout:     post
+title:      "iOS 之 HTTPS理解"
+subtitle:   "HTTPS Learning"
+date:       2016-12-19
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - HTTPS
+    - SSL
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
