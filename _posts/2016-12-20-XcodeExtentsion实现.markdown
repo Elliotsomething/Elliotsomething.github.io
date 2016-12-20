@@ -21,12 +21,9 @@ tags:
 其实网上有大神出了博客，直接参考大神的博客就可以弄出来
 
 **[从头构建你的第一个 Xcode 扩展](https://xcoder.tips/build-your-first-xcode-extension/)**
-
 **[Xcode 插件集：xTextHandler](https://zhuanlan.zhihu.com/p/21380769)**
 
-但是出于想要折腾的心理，还是自己再造个轮子
-
-其实代码都挺简单的，官方开放的接口不多，很容易上手
+但是出于想要折腾的心理，还是自己再造个轮子，其实代码都挺简单的，官方开放的接口不多，很容易上手
 
 **一个插件能做下面的事情：**
 
@@ -75,7 +72,7 @@ tags:
 
 两个类都继承自`NSObject`；
 
-##### 1、`SourceEditorExtension`服从`XCSourceEditorExtension`协议，这个协议有两个方法
+**1、`SourceEditorExtension`服从`XCSourceEditorExtension`协议，这个协议有两个方法**
 
 ```objective-c
 //Extension启动成功后调用
@@ -96,7 +93,7 @@ tags:
 
 `XCSourceEditorCommandDefinitions`是一个数组，定义了一系列这个扩展程序支持的命令，每个命令包含一个 `Identifier`， 一个入口类名，及命令名，我们可以将命令名修改为自己喜欢的名字，我将名字改为`StrHandle1`，并新加了一个item命名为`StrHandle2`;
 
-##### 2、`SourceEditorCommand`服从`XCSourceEditorCommand`协议
+**2、`SourceEditorCommand`服从`XCSourceEditorCommand`协议**
 
 主要的逻辑在`XCSourceEditorCommand`类中，当插件被触发之后，你有机会在代理方法里面拦截到这个消息（`XCSourceEditorCommandInvocation`），做出处理之后将内容返回给 Xcode；
 
@@ -134,7 +131,8 @@ XCSourceTextBuffer 最重要的环节有两个，
 4. 在 `buffer` 中根据当前行，获取到你要的数据，把数据替换后塞回去
 
 为了方便操作，我们可以为扩展命令添加键盘绑定。如下图，在 `Xcode` 中打开偏好，在 `Key Bindings` 下找到我们的新菜单命令，添加快捷键：`Control Shift S`
-![](/Users/neo/Desktop/tmp33591fca.png)
+
+<img src="https://Elliotsomething.GitHub.io/images/post-XcodeExtension-07.png">
 
 ####具体逻辑
 
@@ -142,7 +140,7 @@ XCSourceTextBuffer 最重要的环节有两个，
 
 **代码比较简单，就不放到github上去了**
 
-```objective-c
+```objective_c
 typedef id(*_IMP) (id, SEL, ...);
 
 - (void)performCommandWithInvocation:(XCSourceEditorCommandInvocation *)invocation completionHandler:(void (^)(NSError * _Nullable nilOrError))completionHandler
