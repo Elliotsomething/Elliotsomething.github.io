@@ -134,7 +134,7 @@ XCSourceTextBuffer 最重要的环节有两个，
 
 <img src="https://Elliotsomething.GitHub.io/images/post-XcodeExtension-07.png">
 
-####具体逻辑
+#### 具体逻辑
 
 这里就可以写自己想要实现的功能了，我这里写的是字符串大写或小写替换功能；
 
