@@ -2,7 +2,7 @@
 layout:     post
 title:      "尝试XcodeExtension"
 subtitle:   "XcodeExtension Learning!"
-date:       2016-12-19
+date:       2016-12-20
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
