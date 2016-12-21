@@ -1,10 +1,10 @@
 # Site settings
-title: Elliot' Blog
-SEOTitle: Elliot' Blog
+title: Elliot's Blog
+SEOTitle: Elliot's Blog
 header-img: img/home-bg.jpg
 email: 546598980@QQ.com
-description: "关于Elliot | 杨浩，iOS & Mobile Lover，Front-End Engineer，UX Designer | 这里是 @Elliot杨浩 的个人博客，与你一起发现更大的世界。"
-keyword: "杨浩, Elliot杨浩, Elliotsomething, 孤城, Elliot-yanghao, @Elliot-yanghao, 杨浩的博客, Elliot Blog, 博客, 个人网站, 互联网, iOS"
+description: "关于Elliot | 孤城，iOS & Mobile Lover，Front-End Engineer，UX Designer | 这里是 @Elliot 的个人博客，与你一起发现更大的世界。"
+keyword: "孤城, Elliot, Elliotsomething, 孤城, Elliot-yanghao, @Elliot-yanghao, 孤城的博客, Elliot Blog, 博客, 个人网站, 互联网, iOS"
 url: "https://Elliotsomething.github.io"              # your host, for absolute URL
 baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
 

@@ -73,4 +73,4 @@ tags:
 
 ### 著作权声明
 
-本文译自 [Multithreading with Core Data on iOS](http://cutecoder.org/programming/multithreading-core-data-ios/)。由 [@杨浩](https://www.zhihu.com/people/Elliotsomething) 翻译，转载请保留原文链接 ;)
+本文译自 [Multithreading with Core Data on iOS](http://cutecoder.org/programming/multithreading-core-data-ios/)。由 [@孤城](https://www.zhihu.com/people/Elliotsomething) 翻译，转载请保留原文链接 ;)
