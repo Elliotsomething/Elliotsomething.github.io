@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "ios一种简单的方法加密"
+title:      "iOS一种简单的方法加密"
 subtitle:   "A simple method of encryption in iOS"
 date:       2016-12-12
 author:     "Elliot"
