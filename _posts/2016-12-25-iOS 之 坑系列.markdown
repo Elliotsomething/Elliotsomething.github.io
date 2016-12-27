@@ -1,0 +1,130 @@
+---
+layout:     post
+title:      "iOS 之 坑系列"
+subtitle:   ""
+date:       2016-12-25
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 坑系列
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载**
+
+
+这里主要记录一些以前遇到的有些坑当做笔记，分享出来让自己不要犯同样的错误，也让大家少走弯路；
+
+会持续更新；
+
+### 坑：
+
+ios10下 CTFrameDraw绘制时，需要将绘制区域高度加4-5的高度，不然如果存在文字换行的情况下，最后一行绘制不出；
+
+效果图就不贴了，估计很多人都中招了
+
+```objective_c
+/*关键*/
+CGRect rect = CGRectMake(0, origY, width, height+5);
+CGMutablePathRef firstColumnPath = CGPathCreateMutable();
+CGPathAddRect(firstColumnPath, NULL, rect);
+CTFrameRef firstColumnFrame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, string.length), firstColumnPath, NULL);
+CTFrameDraw(firstColumnFrame, context);
+```
+
+
+### 坑：
+
+当NSMutableAttributedString计算高度时，如果同时存在CF和NS和属性，那么计算的高度可能会存在偏差；
+
+例子：
+
+```objective_c
+NSMutableAttributedString *str = ...;
+NSStringDrawingOptions opts = NSStringDrawingUsesLineFragmentOrigin |
+ NSStringDrawingUsesFontLeading;
+CGSize sizeContent =[str boundingRectWithSize:CGSizeMake(self.width, 100000)
+                                                  options:opts
+                                                  context:nil].size;
+
+[str addAttribute:(NSString*)kCTForegroundColorAttributeName
+                      value:(id)highlightColor.CGColor
+                      range:match.range];
+[str addAttribute:NSForegroundColorAttributeName
+                      value:highlightColor
+                      range:match.range];
+
+sizeContent =[str boundingRectWithSize:CGSizeMake(self.width, 100000)
+                                                  options:opts
+                                                  context:nil].size;
+```
+两次计算的sizeContent可能不一样，非常诡异，所以最好是只用一种方式计算；官方推荐用NS方式
+
+
+### 坑：
+
+`UIView` 动画的坑
+
+很多系统的API中动画效果都会带有`animation`的参数，比如： `- (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated;`。这些`API`的`animation`自带的动画都是`transition`动画，`transition`动画会另开一个动画线程，然后在主线程执行，这个时候如果你去进行UI操作，就会打断动画的执行，比如`tableview`的`reloadData`（可能会让动画卡顿）
+
+另一种动画就是`UIView`的属性动画`block`，这种动画在主线程执行，不会被其他UI操作打断动画的执行
+
+遇到的坑就是，下拉刷新的时候，使用的是系统自带的`API`：`- (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated;`
+如果数据比较复杂且`tableview`的`reload`比较频繁，就会导致`animation`动画很卡顿;
+
+解决办法就是换成属性动画或者`block`动画；
+
+动画的继承结构
+```objective_c
+CAAnimation{
+    CAPropertyAnimation{
+            CABasicAnimation{
+                    CASpringAnimation
+            }
+            CAKeyframeAnimation
+    }
+    CATransition
+    CAAnimationGroup
+}
+```
+
+### 坑：
+
+调用类方法，在父类中最好不要使用self调用，最好用类名调用，因为在子类中，会先遍历子类的类方法`List`，发现没有就去父类的方法`List`中找，这样效率比较低。
+
+### 坑：
+
+曾经遇到过一个很诡异的问题，就是列表从服务器下载图片缓存在本地，讲图片的`hash`作为`key`缓存起来；讲道理如果图片不一样，`hash`应该是不一样的，但是有很小的概率会遇到加载一样的图片出来，百思不得解，最后定位问题发现取缓存时是`hash`值一样，但是再次加载`hash`又不一样；真是无语！
+
+最后Google之。。。
+
+1. `_updateHash`方法中有改变`hash`值的方法，`location.hash`和`location.replace`两个，不管执行的是哪个，`hash`值不会立即改变！也就是说早ios9中`hash`在地址栏中变化有延迟！
+
+http://www.tuicool.com/articles/mQv67j
+
+2. `［NSString hash］`值一样
+
+`iOS: [NSString hash]`出现同样的hash值问题
+
+http://blog.csdn.net/ouyangtianhan/article/details/43672667
+
+第2种是`hash`冲突，不符合我们遇到的问题；应该是第一种情况了；
+
+但是第一种解决办法有点麻烦，我们不需要那么麻烦，只需要再加一些其他参数作为`key`唯一就行了，比如宽高size等等
+
+
+### 坑：
+
+`touch`事件的几个方法中
+
+```objective_c
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+- (void)touchesCancelled:(nullable NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+```
+当触摸时会调用`began`，然后当移动的时候可能会调用`move`，为什么说可能呢？因为当移动非常非常快时是可能捕获不到`move`事件的，这个时候就会调用`cancle`，最后当松开的时候可能会调用`end`，但是也有可能松开时手指已经不在事件区域了，所以会调`cancle`。
+
+`iOS 9` 中`UITouch`事件的坑
+`6s` 以后的触摸事件内部运行机制不同，不管有没有`move`(猜测可能是重按也算`move`)，都会马上调`touchesMoved`
