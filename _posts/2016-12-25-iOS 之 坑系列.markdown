@@ -20,7 +20,9 @@ tags:
 
 ### 坑：
 
-ios10下 CTFrameDraw绘制时，需要将绘制区域高度加4-5的高度，不然如果存在文字换行的情况下，最后一行绘制不出；
+`iOS10` 出来之后，有一个坑很多APP中招了，那就是 `CTFrameDraw`绘制时，如果存在文字换行的情况下，最后一行绘制不出；这是iOS系统的一个bug，不知道以后 APPLE 会不会改过来；
+
+**解决办法就是：需要将绘制区域高度加4-5的高度**
 
 效果图就不贴了，估计很多人都中招了
 
@@ -33,10 +35,9 @@ CTFrameRef firstColumnFrame = CTFramesetterCreateFrame(framesetter, CFRangeMake(
 CTFrameDraw(firstColumnFrame, context);
 ```
 
-
 ### 坑：
 
-当NSMutableAttributedString计算高度时，如果同时存在CF和NS和属性，那么计算的高度可能会存在偏差；
+当`NSMutableAttributedString`计算高度时，如果同时存在`CF`和`NS`的属性，那么计算的高度可能会存在偏差；
 
 例子：
 
@@ -59,7 +60,7 @@ sizeContent =[str boundingRectWithSize:CGSizeMake(self.width, 100000)
                                                   options:opts
                                                   context:nil].size;
 ```
-两次计算的sizeContent可能不一样，非常诡异，所以最好是只用一种方式计算；官方推荐用NS方式
+**两次计算的`sizeContent`可能不一样，非常诡异，所以最好是只用一种方式计算；官方推荐用NS方式**
 
 
 ### 坑：
@@ -73,7 +74,7 @@ sizeContent =[str boundingRectWithSize:CGSizeMake(self.width, 100000)
 遇到的坑就是，下拉刷新的时候，使用的是系统自带的`API`：`- (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated;`
 如果数据比较复杂且`tableview`的`reload`比较频繁，就会导致`animation`动画很卡顿;
 
-解决办法就是换成属性动画或者`block`动画；
+**解决办法就是换成属性动画或者`block`动画；**
 
 动画的继承结构
 ```objective_c
@@ -100,9 +101,9 @@ CAAnimation{
 
 2. `iOS: [NSString hash]`出现同样的hash值问题[地址](http://blog.csdn.net/ouyangtianhan/article/details/43672667)
 
-第2种是`hash`冲突，不符合我们遇到的问题；应该是第一种情况了；
+第2种是`hash`冲突，不符合我遇到的问题；我遇到的应该是第一种情况了；
 
-但是第一种解决办法有点麻烦，我们不需要那么麻烦，只需要再加一些其他参数作为`key`唯一就行了，比如宽高size等等
+**但是第一种解决办法有点麻烦，我们不需要那么麻烦，只需要再加一些其他参数作为`key`唯一就行了，比如宽高size等等**
 
 ### 坑：
 
@@ -121,5 +122,6 @@ CAAnimation{
 ```
 当触摸时会调用`began`，然后当移动的时候可能会调用`move`，为什么说可能呢？因为当移动非常非常快时是可能捕获不到`move`事件的，这个时候就会调用`cancle`，最后当松开的时候可能会调用`end`，但是也有可能松开时手指已经不在事件区域了，所以会调`cancle`。
 
-`iOS 9` 中`UITouch`事件的坑
+**`iOS 9` 中`UITouch`事件的坑**
+
 `6s` 以后的触摸事件内部运行机制不同，不管有没有`move`(猜测可能是重按也算`move`)，都会马上调`touchesMoved`
