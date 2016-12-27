@@ -96,15 +96,9 @@ CAAnimation{
 
 最后Google之。。。
 
-1. `_updateHash`方法中有改变`hash`值的方法，`location.hash`和`location.replace`两个，不管执行的是哪个，`hash`值不会立即改变！也就是说早ios9中`hash`在地址栏中变化有延迟！
+1. `_updateHash`方法中有改变`hash`值的方法，`location.hash`和`location.replace`两个，不管执行的是哪个，`hash`值不会立即改变！也就是说早ios9中`hash`在地址栏中变化有延迟！[地址](http://www.tuicool.com/articles/mQv67j)
 
-http://www.tuicool.com/articles/mQv67j
-
-2. `［NSString hash］`值一样
-
-`iOS: [NSString hash]`出现同样的hash值问题
-
-http://blog.csdn.net/ouyangtianhan/article/details/43672667
+2. `iOS: [NSString hash]`出现同样的hash值问题[地址](http://blog.csdn.net/ouyangtianhan/article/details/43672667)
 
 第2种是`hash`冲突，不符合我们遇到的问题；应该是第一种情况了；
 
