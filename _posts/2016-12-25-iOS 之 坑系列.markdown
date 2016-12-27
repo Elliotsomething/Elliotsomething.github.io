@@ -77,6 +77,7 @@ sizeContent =[str boundingRectWithSize:CGSizeMake(self.width, 100000)
 **解决办法就是换成属性动画或者`block`动画；**
 
 动画的继承结构
+
 ```objective_c
 CAAnimation{
     CAPropertyAnimation{
