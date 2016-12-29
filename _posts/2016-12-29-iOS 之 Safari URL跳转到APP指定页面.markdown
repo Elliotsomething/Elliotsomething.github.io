@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "iOS 之 Safari URL跳转到APP指定页面"
+title:      "iOS 之 Safari Or Web URL跳转到APP指定界面"
 subtitle:   "Safari URL Schemes PushViewController"
 date:       2016-12-29
 author:     "Elliot"
