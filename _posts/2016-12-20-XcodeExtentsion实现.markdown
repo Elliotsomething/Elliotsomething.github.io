@@ -74,7 +74,7 @@ tags:
 
 **1、`SourceEditorExtension`服从`XCSourceEditorExtension`协议，这个协议有两个方法**
 
-```objective-c
+```objective_c
 //Extension启动成功后调用
 - (void)extensionDidFinishLaunching
 {
@@ -97,7 +97,7 @@ tags:
 
 主要的逻辑在`XCSourceEditorCommand`类中，当插件被触发之后，你有机会在代理方法里面拦截到这个消息（`XCSourceEditorCommandInvocation`），做出处理之后将内容返回给 Xcode；
 
-```objective-c
+```objective_c
 - (void)performCommandWithInvocation:(XCSourceEditorCommandInvocation *)invocation completionHandler:(void (^)(NSError * _Nullable nilOrError))completionHandler
 {
     // Implement your command here, invoking the completion handler when done. Pass it nil on success, and an NSError on failure.
@@ -115,7 +115,7 @@ tags:
 
 XCSourceTextBuffer 最重要的环节有两个，
 
-```objective-c
+```objective_c
 /** The lines of text in the buffer, including line endings. Line breaks within a single buffer are expected to be consistent. Adding a "line" that itself contains line breaks will actually modify the array as well, changing its count, such that each line added is a separate element. */
 @property (readonly, strong) NSMutableArray <NSString *> *lines;
 
