@@ -37,7 +37,7 @@ tags:
 ```objective_c
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
-	BOOL ret = [ExtensionHandle handleOpenURL:url];
+		BOOL ret = [ExtensionHandle handleOpenURL:url];
     if (ret) {
         return ret;
     }else{
@@ -51,27 +51,26 @@ tags:
 ```objective_c
 #define URL_SCHEME_PREFIX     @"URL Schemes://" //这个是 URL Schemes
 + (BOOL)handleOpenURL:(NSURL *)url{
-		BOOL ret = [url.absoluteString hasPrefix:URL_SCHEME_PREFIX];
-		if (ret) {
-    		NSString *bundelID = [[[NSBundle mainBundle] bundleIdentifier] lowercaseString];
+	BOOL ret = [url.absoluteString hasPrefix:URL_SCHEME_PREFIX];
+	if (ret) {
+			NSString *bundelID = [[[NSBundle mainBundle] bundleIdentifier] lowercaseString];
+			if ([[url.absoluteString lowercaseString] rangeOfString:bundelID].location!=NSNotFound) {
+					NSArray *urlComponents = [url.absoluteString componentsSeparatedByString:[NSString stringWithFormat:@"%@/",bundelID]];
+					NSString *query = urlComponents.lastObject;
 
-        if ([[url.absoluteString lowercaseString] rangeOfString:bundelID].location!=NSNotFound) {
-            NSArray *urlComponents = [url.absoluteString componentsSeparatedByString:[NSString stringWithFormat:@"%@/",bundelID]];
-            NSString *query = urlComponents.lastObject;
+					/*analyze  params*/
+					NSDictionary *params = [self analyzeQuery:query];
 
-						/*analyze  params*/
-            NSDictionary *params = [self analyzeQuery:query];
-
-            if ([params[@"mod"] length] != 0) {
-								NSString *modStr =  params[@"mod"];
-								if (url.query) {
-										modStr = [modStr stringByAppendingString:url.query];
-								}
-              	[PageTransferHelper appJumpToPageWithModString:modStr];
-          	}
-        }
-    }
-    return ret;
+					if ([params[@"mod"] length] != 0) {
+							NSString *modStr =  params[@"mod"];
+							if (url.query) {
+									modStr = [modStr stringByAppendingString:url.query];
+							}
+							[PageTransferHelper appJumpToPageWithModString:modStr];
+					}
+			}
+	}
+	return ret;
 }
 ```
 
@@ -99,28 +98,28 @@ tags:
 注：讲道理，`string == appstore?id="params"`
 
 ```objective_c
-+ (void)appJumpToPageWithModString:(NSString*)string{
-		if (string.length==0) {
-        return;
-    }
-    /*URL 解码*/
-    string = [string stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-    NSArray* paragamArr = [string componentsSeparatedByString:@"?id="];
-		classKey = [paragamArr firstObject];
-    //handle params
-    id obj = params;
++ (void)appJumpToPageWithModString:(NSString *)string{
+	if (string.length==0) {
+			return;
+	}
+	/*URL 解码*/
+	string = [string stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+	NSArray* paragamArr = [string componentsSeparatedByString:@"?id="];
+	classKey = [paragamArr firstObject];
+	//handle params
+	id obj = params;
 
-    NSInteger type;
-    NSDictionary *dict = [self pageTransferStringDict];
-    for (NSNumber *key in [dict allKeys]) {
-        if ([dict[key] isEqualToString:classKey]) {
-            type = [key integerValue];
-            break;
-        }
-    }
-   	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [self appJumpToPage:type andParagam:obj];
-    });
+	NSInteger type;
+	NSDictionary *dict = [self pageTransferStringDict];
+	for (NSNumber *key in [dict allKeys]) {
+			if ([dict[key] isEqualToString:classKey]) {
+					type = [key integerValue];
+					break;
+			}
+	}
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+			[self appJumpToPage:type andParagam:obj];
+	});
 }
 ```
 
@@ -145,13 +144,13 @@ tags:
 
 ```objective_c
 + (void)appJumpToPage:(NSInteger)type andParagam:(id)obj,...{
-		[AppDelegate dismissAllViewController];
-    AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-    Class class = [self pageTransferClassDict][@(type)];
-    [appDelegate.rootViewController setSelectedIndex:0];
-    UIViewController *viewController = [[class alloc]init];
-		viewController. params = obj;
-		[appDelegate.rootViewController.navigationController pushViewController:viewController animated:NO];
+	[AppDelegate dismissAllViewController];
+	AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+	Class class = [self pageTransferClassDict][@(type)];
+	[appDelegate.rootViewController setSelectedIndex:0];
+	UIViewController *viewController = [[class alloc]init];
+	viewController. params = obj;
+	[appDelegate.rootViewController.navigationController pushViewController:viewController animated:NO];
 }
 
 ```
