@@ -71,6 +71,9 @@ tags:
 ·新的`NSManagedObjectContext`架构（上下级的`context`）
 ·怎样在每个层级的`context`中使用不同的操作类型（网络刷新请求，主线程、界面刷新，任务线程）
 
+
+DEMO地址：[Github](https://github.com/Elliotsomething/CoredataDemo/tree/master) 觉得赞的请给个星星，3ku
+
 ### 著作权声明
 
 本文译自 [Multithreading with Core Data on iOS](http://cutecoder.org/programming/multithreading-core-data-ios/)。由 [@孤城](https://www.zhihu.com/people/Elliotsomething) 翻译，转载请保留原文链接 ;)
