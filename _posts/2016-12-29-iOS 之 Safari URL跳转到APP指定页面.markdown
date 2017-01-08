@@ -152,3 +152,11 @@ tags:
     [appDelegate.rootViewController.navigationController pushViewController:viewController animated:NO];
 }
 ```
+
+在web中点击URL之后的回调是：
+
+```objective_c
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType;
+```
+
+接下来的解析URL跟上面一样
