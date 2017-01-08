@@ -59,6 +59,8 @@ dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_
 
 这种创建出来的`Dispatch Queue`优先级为默认优先级
 
+**注：GCD使用的`block`是系统持有的，所以在其`block`中不使用`weak`也不会造成循环引用**
+
 在ARC下同样也需要手动释放`dispatch_release(Queue)`;
 同样也有`dispatch_reatain(Queue)`;
 通过这两个API来管理引用计数，`block`会持有该`Dispatch Queue`知道`block`执行结束
