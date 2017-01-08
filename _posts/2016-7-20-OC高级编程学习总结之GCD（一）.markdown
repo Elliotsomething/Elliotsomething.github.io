@@ -41,7 +41,7 @@ OC高级编程学习总结之GCD（一）
 - `Serial Dispatch Queue：`当一个任务执行完之后才执行下一个任务，一次只执行一个任务（单线程）
 - `Concurrent Dispatch Queue：`当一个任务开始之后马上执行下一个任务，不用等上一个任务完成（多线程）
 
-**注意：并行执行处理数量取决于当前系统的状态，即iOS和OS X基于`Dispatch Queue`中的处理数、CPU的核数以及CPU的负荷等当前系统的主干太来决定`Concurrent Dispatch Queue`中的线程数**
+**注意：并行执行处理数量取决于当前系统的状态，即iOS和OS X基于`Dispatch Queue`中的处理数、CPU的核数以及CPU的负荷等当前系统的状态来决定`Concurrent Dispatch Queue`中的线程数**
 
 **注：主队列是在主线程中执行的`Dispatch Queue`，因为主线程只有一个，所以主队列是串行队列。**
 
