@@ -1,0 +1,195 @@
+---
+layout:     post
+title:      "OC高级编程学习总结之GCD（一）"
+subtitle:   "Grand Central Dispatch"
+date:       2016-7-20
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - GCD
+    - 多线程编程
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+OC高级编程学习总结之GCD（一）
+
+该篇是对Objective-c高级编程一书的学习总结，有不到位的地方建议去看原书
+
+### 1、什么是GCD？
+
+Grand Central Dispatch（GCD）是异步执行任务的技术。一般将项目中线程管理用的代码在系统级中实现，开发者只需要定义想执行的任务并追加到适当的Dispatch Queue中，GCD就能生成必要的线程并计划执行任务，由于线程管理是作为系统的一部分实现的，因此可统一管理，也可执行任务，这样就比以前更有效率。
+
+### 2、多线程编程
+
+在一个或者多个CPU的情况下，在某个线程和其他线程之间反复多次进行上下文切换，并行执行多个线程的技术
+
+使用多线程编程，在执行长时间的处理任务是保证主线程的响应性能；
+
+多线程是一种易发生各种问题的变成技术，比如：数据竞争，死锁，太多线程小号大量内存等；使用GCD可以大大简化代码
+
+### 3、Dispatch Queue 是什么？
+
+Dispatch Queue是执行处理的等待队列，通过disptach_async等API将block任务或者函数追加到适当的Dispatch Queue中就可以使指定的block任务或者函数在另一个线程中执行；Dispatch Queue都是按照block加入的顺序（FIFO）执行处理的
+
+Dispatch Queue有两种类型，等待执行处理的串行队列Serial Dispatch Queue和不等待执行处理的并发队列Concurrent Dispatch Queue，
+
+**区别：**
+- Serial Dispatch Queue：当一个任务执行完之后才执行下一个任务，一次只执行一个任务（单线程）
+- Concurrent Dispatch Queue：当一个任务开始之后马上执行下一个任务，不用等上一个任务完成（多线程）
+
+**注意：并行执行处理数量取决于当前系统的状态，即iOS和OS X基于Dispatch Queue中的处理数、CPU的核数以及CPU的负荷等当前系统的主干太来决定Concurrent Dispatch Queue中的线程数**
+
+**注：主队列是在主线程中执行的Dispatch Queue，因为主线程只有一个，所以主队列是串行队列。**
+
+### 4、创建Dispatch Queue
+
+使用dispatch_queue_create函数可生成Dispatch Queue
+
+```objective_c
+dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_SERIAL);
+```
+
+第一个参数是label，指定Dispatch Queue的名称，推荐使用应用程序ID这种逆序全程域名，嫌麻烦设为NULL也是可以的，但是调试的时候一定会后悔；
+
+第二个参数是指明Dispatch Queue的类型，串行用DISPATCH_QUEUE_SERIAL或者NULL，并行用DISPATCH_QUEUE_CONCURRENT
+
+这种创建出来的Dispatch Queue优先级为默认优先级
+
+在ARC下同样也需要手动释放dispatch_release(Queue);
+同样也有dispatch_reatain(Queue);
+通过这两个API来管理引用计数，block会持有该Dispatch Queue知道block执行结束
+
+```objective_c
+ * When a dispatch queue is no longer needed, it should be released with
+ * dispatch_release(). Note that any pending blocks submitted to a queue will
+ * hold a reference to that queue. Therefore a queue will not be deallocated
+ * until all pending blocks have finished.
+```
+
+Concurrent Dispatch Queue并行执行多个任务，Serial Dispatch Queue只能执行一个任务，两种类型的队列线程数受到系统资源的限制，Concurrent Dispatch Queue只会使用内核有效管理的线程数；但是可以生成多个Serial Dispatch Queue，每个Serial Dispatch Queue使用一个线程，这样就不会受到系统资源的限制，可以创建多个线程，但是过多的线程数会大量消耗内存，引起大量的上下文切换，降低系统性能；因此最好使用适当的线程数。
+
+多线程操作相同资源会产生数据竞争问题，单线程不会；
+
+生成多个Serial Dispatch Queue代码如下：
+
+```objrctive_c
+//定义dispatch_queue_t数组
+#define MAX_QUEUE_COUNT 5
+dispatch_queue_t queues[MAX_QUEUE_COUNT];
+for (NSUInteger i = 0; i < MAX_QUEUE_COUNT; i++) {
+	queues[i] = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_SERIAL);			
+}
+```
+
+### 5、获取系统级Dispatch Queue
+
+系统提供了几种的Dispatch Queue，Main Dispatch Queue和Global Dispatch Queue
+
+Main Dispatch Queue是在主线程执行的串行队列，用于在主线程进行UI操作的一些任务
+
+Global Dispatch Queue是全局Concurrent Dispatch Queue，有4个优先级分别是高优先级（high priority），默认优先级（default priority），低优先级（low priority），后台优先级（background priority）；通过内核管理的用于Global Dispatch Queue的线程，将各自使用Global Dispatch Queue的执行优先级作为线程的优先级使用
+
+对应的优先级宏如下
+
+```objective_c
+#define DISPATCH_QUEUE_PRIORITY_HIGH 2
+#define DISPATCH_QUEUE_PRIORITY_DEFAULT 0
+#define DISPATCH_QUEUE_PRIORITY_LOW (-2)
+#define DISPATCH_QUEUE_PRIORITY_BACKGROUND INT16_MIN
+
+typedef long dispatch_queue_priority_t;
+```
+
+同时对应的官方文档介绍
+
+```objective_c
+/*!
+ * @typedef dispatch_queue_priority_t
+ * Type of dispatch_queue_priority
+ *
+ * @constant DISPATCH_QUEUE_PRIORITY_HIGH
+ * Items dispatched to the queue will run at high priority,
+ * i.e. the queue will be scheduled for execution before
+ * any default priority or low priority queue.
+ *
+ * @constant DISPATCH_QUEUE_PRIORITY_DEFAULT
+ * Items dispatched to the queue will run at the default
+ * priority, i.e. the queue will be scheduled for execution
+ * after all high priority queues have been scheduled, but
+ * before any low priority queues have been scheduled.
+ *
+ * @constant DISPATCH_QUEUE_PRIORITY_LOW
+ * Items dispatched to the queue will run at low priority,
+ * i.e. the queue will be scheduled for execution after all
+ * default priority and high priority queues have been
+ * scheduled.
+ *
+ * @constant DISPATCH_QUEUE_PRIORITY_BACKGROUND
+ * Items dispatched to the queue will run at background priority, i.e. the queue
+ * will be scheduled for execution after all higher priority queues have been
+ * scheduled and the system will run items on this queue on a thread with
+ * background status as per setpriority(2) (i.e. disk I/O is throttled and the
+ * thread's scheduling priority is set to lowest value).
+ */
+```
+
+值得注意的是后台优先级（background priority），throttled阀门，文档中介绍说后台优先级会限制该线程中的IO操作，这样尽可能的让出CPU资源处理其他任务，提高性能
+
+另外，iOS8提供了一种新的优先级类型Thread quality of service (QOS)，官方建议是iOS 8以上优先使用QOS，以下兼容老的优先级宏，
+
+文档定义如下：
+
+```objectvive_c
+ * A QOS class value:
+ *  - QOS_CLASS_USER_INTERACTIVE
+ *  - QOS_CLASS_USER_INITIATED
+ *  - QOS_CLASS_DEFAULT
+ *  - QOS_CLASS_UTILITY
+ *  - QOS_CLASS_BACKGROUND
+ * Passing any other value results in NULL being returned.
+```
+
+同时对应老的优先级宏如下：
+
+```objective_c
+QOS_CLASS_USER_INTERACTIVE 对应的是主线程
+
+ * The global queue priorities map to the following QOS classes:
+ *  - DISPATCH_QUEUE_PRIORITY_HIGH:         QOS_CLASS_USER_INITIATED
+ *  - DISPATCH_QUEUE_PRIORITY_DEFAULT:      QOS_CLASS_DEFAULT
+ *  - DISPATCH_QUEUE_PRIORITY_LOW:          QOS_CLASS_UTILITY
+ *  - DISPATCH_QUEUE_PRIORITY_BACKGROUND:   QOS_CLASS_BACKGROUND
+```
+
+获取对应优先级的Global Dispatch Queue代码如下：
+
+```objective_c
+dispatch_queue_t mainQueue = dispatch_get_main_queue();
+dispatch_queue_t highQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+dispatch_queue_t defaultQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+dispatch_queue_t lowQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+dispatch_queue_t backgroundQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+```
+
+**注意：由于Global Dispatch Queue是系统管理的，所以对其使用dispatch_release或disspatch_retain不会有变化**
+
+### 6、为创建的Dispatch Queue创建优先级
+
+前面说了自己创建的Dispatch Queue优先级是默认优先级，如果想要为自己创建的Dispatch Queue设置其他优先级的话，需要用到dispatch_set_target_queue()这个API，iOS 8之后建议用dispatch_queue_attr_t设置优先级
+
+代码如下：
+
+```objective_c
+//iOS 8以上
+dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, 0);
+dispatch_queue_t queues = dispatch_queue_create("com.yh.render", attr);
+
+//iOS 8之前
+dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_SERIAL);
+dispatch_set_target_queue(queues, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+```
+
+另外该方法还可以用来设置Dispatch Queue的执行层次
