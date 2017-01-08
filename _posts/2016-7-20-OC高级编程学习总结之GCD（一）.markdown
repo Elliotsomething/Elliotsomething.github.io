@@ -2,7 +2,7 @@
 layout:     post
 title:      "OC高级编程学习总结之GCD（一）"
 subtitle:   "Grand Central Dispatch"
-date:       2016-7-20
+date:       2016-7-28
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
@@ -16,11 +16,11 @@ tags:
 
 OC高级编程学习总结之GCD（一）
 
-该篇是对Objective-c高级编程一书的学习总结，有不到位的地方建议去看原书
+该篇是对`Objective-c`高级编程一书的学习总结，有不到位的地方建议去看原书
 
 ### 1、什么是GCD？
 
-Grand Central Dispatch（GCD）是异步执行任务的技术。一般将项目中线程管理用的代码在系统级中实现，开发者只需要定义想执行的任务并追加到适当的Dispatch Queue中，GCD就能生成必要的线程并计划执行任务，由于线程管理是作为系统的一部分实现的，因此可统一管理，也可执行任务，这样就比以前更有效率。
+`Grand Central Dispatch（GCD`）是异步执行任务的技术。一般将项目中线程管理用的代码在系统级中实现，开发者只需要定义想执行的任务并追加到适当的Dispatch Queue中，GCD就能生成必要的线程并计划执行任务，由于线程管理是作为系统的一部分实现的，因此可统一管理，也可执行任务，这样就比以前更有效率。
 
 ### 2、多线程编程
 
@@ -30,15 +30,16 @@ Grand Central Dispatch（GCD）是异步执行任务的技术。一般将项目�
 
 多线程是一种易发生各种问题的变成技术，比如：数据竞争，死锁，太多线程小号大量内存等；使用GCD可以大大简化代码
 
-### 3、Dispatch Queue 是什么？
+### 3、`Dispatch Queue` 是什么？
 
-Dispatch Queue是执行处理的等待队列，通过disptach_async等API将block任务或者函数追加到适当的Dispatch Queue中就可以使指定的block任务或者函数在另一个线程中执行；Dispatch Queue都是按照block加入的顺序（FIFO）执行处理的
+`Dispatch Queue`是执行处理的等待队列，通过`disptach_async`等API将`block`任务或者函数追加到适当的`Dispatch Queue`中就可以使指定的`bloc`k任务或者函数在另一个线程中执行；`Dispatch Queue`都是按照`block`加入的顺序（FIFO）执行处理的
 
-Dispatch Queue有两种类型，等待执行处理的串行队列Serial Dispatch Queue和不等待执行处理的并发队列Concurrent Dispatch Queue，
+`Dispatch Queue`有两种类型，等待执行处理的串行队列`Serial Dispatch Queue`和不等待执行处理的并发队列`Concurrent Dispatch Queue`，
 
 **区别：**
-- Serial Dispatch Queue：当一个任务执行完之后才执行下一个任务，一次只执行一个任务（单线程）
-- Concurrent Dispatch Queue：当一个任务开始之后马上执行下一个任务，不用等上一个任务完成（多线程）
+
+- `Serial Dispatch Queue：`当一个任务执行完之后才执行下一个任务，一次只执行一个任务（单线程）
+- `Concurrent Dispatch Queue：`当一个任务开始之后马上执行下一个任务，不用等上一个任务完成（多线程）
 
 **注意：并行执行处理数量取决于当前系统的状态，即iOS和OS X基于Dispatch Queue中的处理数、CPU的核数以及CPU的负荷等当前系统的主干太来决定Concurrent Dispatch Queue中的线程数**
 
@@ -46,21 +47,21 @@ Dispatch Queue有两种类型，等待执行处理的串行队列Serial Dispatch
 
 ### 4、创建Dispatch Queue
 
-使用dispatch_queue_create函数可生成Dispatch Queue
+使用`dispatch_queue_create`函数可生成`Dispatch Queue`
 
 ```objective_c
 dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_SERIAL);
 ```
 
-第一个参数是label，指定Dispatch Queue的名称，推荐使用应用程序ID这种逆序全程域名，嫌麻烦设为NULL也是可以的，但是调试的时候一定会后悔；
+第一个参数是`label`，指定`Dispatch Queue`的名称，推荐使用应用程序ID这种逆序全程域名，嫌麻烦设为NULL也是可以的，但是调试的时候一定会后悔；
 
-第二个参数是指明Dispatch Queue的类型，串行用DISPATCH_QUEUE_SERIAL或者NULL，并行用DISPATCH_QUEUE_CONCURRENT
+第二个参数是指明`Dispatch Queue`的类型，串行用`DISPATCH_QUEUE_SERIAL`或者`NULL`，并行用`DISPATCH_QUEUE_CONCURRENT`
 
-这种创建出来的Dispatch Queue优先级为默认优先级
+这种创建出来的`Dispatch Queue`优先级为默认优先级
 
-在ARC下同样也需要手动释放dispatch_release(Queue);
-同样也有dispatch_reatain(Queue);
-通过这两个API来管理引用计数，block会持有该Dispatch Queue知道block执行结束
+在ARC下同样也需要手动释放`dispatch_release(Queue)`;
+同样也有`dispatch_reatain(Queue)`;
+通过这两个API来管理引用计数，`block`会持有该`Dispatch Queue`知道`block`执行结束
 
 ```objective_c
  * When a dispatch queue is no longer needed, it should be released with
@@ -69,13 +70,13 @@ dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_
  * until all pending blocks have finished.
 ```
 
-Concurrent Dispatch Queue并行执行多个任务，Serial Dispatch Queue只能执行一个任务，两种类型的队列线程数受到系统资源的限制，Concurrent Dispatch Queue只会使用内核有效管理的线程数；但是可以生成多个Serial Dispatch Queue，每个Serial Dispatch Queue使用一个线程，这样就不会受到系统资源的限制，可以创建多个线程，但是过多的线程数会大量消耗内存，引起大量的上下文切换，降低系统性能；因此最好使用适当的线程数。
+`Concurrent Dispatch Queue`并行执行多个任务，`Serial Dispatch Queue`只能执行一个任务，两种类型的队列线程数受到系统资源的限制，`Concurrent Dispatch Queue`只会使用内核有效管理的线程数；但是可以生成多个`Serial Dispatch Queue`，每个`Serial Dispatch Queue`使用一个线程，这样就不会受到系统资源的限制，可以创建多个线程，但是过多的线程数会大量消耗内存，引起大量的上下文切换，降低系统性能；因此最好使用适当的线程数。
 
 多线程操作相同资源会产生数据竞争问题，单线程不会；
 
-生成多个Serial Dispatch Queue代码如下：
+生成多个`Serial Dispatch Queue`代码如下：
 
-```objrctive_c
+```objective_c
 //定义dispatch_queue_t数组
 #define MAX_QUEUE_COUNT 5
 dispatch_queue_t queues[MAX_QUEUE_COUNT];
@@ -86,11 +87,11 @@ for (NSUInteger i = 0; i < MAX_QUEUE_COUNT; i++) {
 
 ### 5、获取系统级Dispatch Queue
 
-系统提供了几种的Dispatch Queue，Main Dispatch Queue和Global Dispatch Queue
+系统提供了几种的`Dispatch Queue`，`Main Dispatch Queue`和`Global Dispatch Queue`
 
-Main Dispatch Queue是在主线程执行的串行队列，用于在主线程进行UI操作的一些任务
+`Main Dispatch Queue`是在主线程执行的串行队列，用于在主线程进行UI操作的一些任务
 
-Global Dispatch Queue是全局Concurrent Dispatch Queue，有4个优先级分别是高优先级（high priority），默认优先级（default priority），低优先级（low priority），后台优先级（background priority）；通过内核管理的用于Global Dispatch Queue的线程，将各自使用Global Dispatch Queue的执行优先级作为线程的优先级使用
+`Global Dispatch Queue`是全局`Concurrent Dispatch Queue`，有4个优先级分别是高优先级`（high priority）`，默认优先级`（default priority）`，低优先级`（low priority）`，后台优先级`（background priority）`；通过内核管理的用于`Global Dispatch Queue`的线程，将各自使用`Global Dispatch Queue`的执行优先级作为线程的优先级使用
 
 对应的优先级宏如下
 
@@ -136,9 +137,9 @@ typedef long dispatch_queue_priority_t;
  */
 ```
 
-值得注意的是后台优先级（background priority），throttled阀门，文档中介绍说后台优先级会限制该线程中的IO操作，这样尽可能的让出CPU资源处理其他任务，提高性能
+值得注意的是后台优先级`（background priority）`，`throttled`阀门，文档中介绍说后台优先级会限制该线程中的IO操作，这样尽可能的让出CPU资源处理其他任务，提高性能
 
-另外，iOS8提供了一种新的优先级类型Thread quality of service (QOS)，官方建议是iOS 8以上优先使用QOS，以下兼容老的优先级宏，
+另外，iOS8提供了一种新的优先级类型`Thread quality of service (QOS)`，官方建议是iOS 8以上优先使用QOS，以下兼容老的优先级宏，
 
 文档定义如下：
 
@@ -164,7 +165,7 @@ QOS_CLASS_USER_INTERACTIVE 对应的是主线程
  *  - DISPATCH_QUEUE_PRIORITY_BACKGROUND:   QOS_CLASS_BACKGROUND
 ```
 
-获取对应优先级的Global Dispatch Queue代码如下：
+获取对应优先级的`Global Dispatch Queue`代码如下：
 
 ```objective_c
 dispatch_queue_t mainQueue = dispatch_get_main_queue();
@@ -178,7 +179,7 @@ dispatch_queue_t backgroundQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIO
 
 ### 6、为创建的Dispatch Queue创建优先级
 
-前面说了自己创建的Dispatch Queue优先级是默认优先级，如果想要为自己创建的Dispatch Queue设置其他优先级的话，需要用到dispatch_set_target_queue()这个API，iOS 8之后建议用dispatch_queue_attr_t设置优先级
+前面说了自己创建的`Dispatch Queue`优先级是默认优先级，如果想要为自己创建的`Dispatch Queue`设置其他优先级的话，需要用到`dispatch_set_target_queue()`这个API，iOS 8之后建议用`dispatch_queue_attr_t`设置优先级
 
 代码如下：
 
@@ -192,4 +193,4 @@ dispatch_queue_t queues = dispatch_queue_create("com.yh.render", DISPATCH_QUEUE_
 dispatch_set_target_queue(queues, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 ```
 
-另外该方法还可以用来设置Dispatch Queue的执行层次
+另外该方法还可以用来设置`Dispatch Queue`的执行层次
