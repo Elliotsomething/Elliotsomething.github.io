@@ -12,7 +12,7 @@ tags:
     - 缓存优化
 ---
 
-### imageNamed和imageWithContentsOfFile的区别
+### 一、imageNamed和imageWithContentsOfFile的区别
 
 在iOS开发中生成一个UIImage对象的方法通常有两种
 
@@ -21,7 +21,7 @@ tags:
 
 下面介绍这两中方法的区别:
 
-**imgeNamed**
+#### imgeNamed
 
 ```objective_c
 [UIImage imageNamed:@"hearderImage"]
@@ -37,7 +37,7 @@ tags:
 `imageNamed`只适合用于小的图片的读取，或重复使用一张图片的时候,而当加载一些比较大的图片文件的时候
 我们应当尽量避免使用这个方法.
 
-**imageWithContentsOfFile**
+#### imageWithContentsOfFile
 
 ```objective_c
 NSString *filePath = [[NSBundle mainBundle] pathForResource:fileName ofType:extension];
