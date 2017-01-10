@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      "iOS之imageNamed和imageWithContentsOfFile优化"
-subtitle:   "imageNamed and imageWithContentsOfFile optimization"
+title:      "iOS之UIImage对象优化"
+subtitle:   "UIImage optimization"
 date:       2016-3-1
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
