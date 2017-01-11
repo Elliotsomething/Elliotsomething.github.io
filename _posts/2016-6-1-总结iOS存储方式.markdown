@@ -1,0 +1,226 @@
+---
+layout:     post
+title:      "总结iOS存储方式"
+subtitle:   "Summary of iOS storage"
+date:       2016-6-1
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - 数据库
+    - 存储方式
+---
+总结iOS存储方式
+
+文件存储，实质是生成文件保存在磁盘中
+1. `NSKeyedArchiver`
+2. `NSManagerFile`
+3. 数据库存储：`Sqlite、coredata、FMDB`等（实质是文件存储）
+4. `keychain`(系统级别的存储)
+
+**1、`NSKeyedArchiver`：** 采用归档的形式来保存数据，该数据对象需要遵守`NSCoding`协议，并且该对象对应的类必须提供`encodeWithCoder:`和`initWithCoder:`方法。前一个方法告诉系统怎么对对象进行编码，而后一个方法则是告诉系统怎么对对象进行解码。例如对`Possession`对象归档保存。 定义`Possession`：
+
+```objective_c
+@interface Possession：NSObject<NSCoding>{//遵守NSCoding协议
+      NSString *name;//待归档类型
+}
+@implementation Possession
+-(void)encodeWithCoder:(NSCoder *)aCoder{
+            [aCoder encodeObject:name forKey:@"name"];
+}
+-(void)initWithCoder:(NSCoder *)aDecoder{
+            name=[[aDeCoder decodeObjectforKey:@"name"] retain];
+}
+归档操作：
+如果对Possession对象allPossession归档保存，
+只需要NSCoder子类NSKeyedArchiver的方法archiveRootObject:toFile: 即可。
+
+NSString *path = [self possessionArchivePath];
+[NSKeyedArchiver archiveRootObject:allPossessions toFile: path ]
+解压操作：
+
+同样调用NSCoder子类NSKeyedArchiver的方法unarchiveRootObject:toFile: 即可
+allPossessions = [[NSKeyedUnarchiver unarchiveObjectWithFile:path] retain];
+```
+
+缺点：归档的形式来保存数据，只能一次性归档保存以及一次性解压。所以只能针对小量数据，而且对数据操作比较笨拙，即如果想改动数据的某一小部分，还是需要解压整个数据或者归档整个数据。
+
+**2、`NSUserDefaults`：** 用来保存应用程序设置和属性、用户保存的数据。用户再次打开程序或开机后这些数据仍然存在。`NSUserDefaults`可以存储的数据类型包括：`NSData`、`NSString`、`NSNumber`、`NSDate`、`NSArray`、`NSDictionary`。他实际上是存储于文件沙盒中的一个`.plist`文件，并且没有被系统加密，只是`iOS 6`以后不是存于常用的文档目录下，所以不破解系统是看不到该文件的。所以该种方法储存的数据并不是很很安全，若想存储安全还是靠你自己的加密算法。 如果要存储其他类型，则需要转换为前面的类型，才能用`NSUserDefaults`存储。具体实现为：
+
+```objective_c
+保存数据：
+NSUserDefaults *defaults =[NSUserDefaults standardUserDefaults];
+NSString *name =@”default string“;
+[defaults setObject:firstName forKey:@"name"];
+  //获得UIImage实例
+
+UIImage *image=[[UIImage alloc]initWithContentsOfFile:@"photo.jpg"];
+
+NSData *imageData = UIImageJPEGRepresentation(image, 100);//UIImage对象转换成NSData
+
+[defaults synchronize];//用synchronize方法把数据持久化到standardUserDefaults数据库
+读取数据：
+
+NSUserDefaults *defaults =[NSUserDefaults standardUserDefaults];
+NSString *name = [defaults objectForKey:@"name"];//根据键值取出name
+NSData *imageData = [defaults dataForKey:@"image"];
+UIImage *Image = [UIImage imageWithData:imageData];//NSData转换为UIImage
+```
+
+**3、Write写入方式：** 永久保存在磁盘中。实际是`NSManagerFile`类管理文件，具体方法为：
+
+第一步：获得文件即将保存的路径：
+
+```objective_c
+NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,  NSUserDomainMask,YES);
+//使用C函数NSSearchPathForDirectoriesInDomains来获得沙盒中目录的全路径。该函数有三个参数，目录类型、he domain mask、布尔值。
+```
+
+其中布尔值表示是否需要通过～扩展路径。而且第一个参数是不变的，即为`NSSearchPathDirectory` 。
+在IOS中后两个参数也是不变的，即为：`NSUserDomainMask` 和 `YES`。
+
+```objective_c
+NSString *ourDocumentPath =[documentPaths objectAtIndex:0];
+```
+还有一种方法是使用`NSHomeDirectory`函数获得`sandbox`的路径。具体的用法为：
+
+```objective_c
+NSString *sandboxPath = NSHomeDirectory();
+// Once you have the full sandbox path, you can create a path from it，但是不能在sandbox的本文件层上写文件也不能创建目录，而应该是此基础上创建一个新的可写的目录，例如Documents,Library或者temp。
+NSString *documentPath = [sandboxPath stringByAppendingPathComponent:@"Documents"];//将Documents添加到sandbox路径上，具体原因前面分析了！
+```
+这两者的区别就是：使用`NSSearchPathForDirectoriesInDomains`比在`NSHomeDirectory`后面添加`Document`更加安全。因为该文件目录可能在未来发送的系统上发生改变。
+
+第二步：生成在该路径下的文件：
+
+```objective_c
+NSString *FileName=[documentDirectory stringByAppendingPathComponent:fileName];//fileName就是保存文件的文件名
+```
+第三步：往文件中写入数据：
+
+```objective_c
+[data writeToFile:FileName atomically:YES];//将NSData类型对象data写入文件，文件名为FileName
+```
+最后：从文件中读出数据：
+
+```objective_c
+NSData data=[NSData dataWithContentsOfFile:FileName options:0 error:NULL];//从FileName中读取出数据
+```
+
+**4、数据库：**
+
+ `SQLite`：采用`SQLite`数据库来存储数据。`SQLite`作为一中小型数据库，应用ios中，跟前三种保存方式相比，相对比较复杂一些。还是一步步来吧！
+
+第一步：需要添加SQLite相关的库以及头文件：在项目文件的`Build Phases`下，找到`Link Binary Library(ies)`，添加`libsqlite3.0.dylib（libsqlite3.dylib`与前者的区别暂时不知，两者应该差不多）；在项目文件中头文件或者源文件中添加头文件#import `"/usr/include/sqlite3.h"`
+
+第二步：开始使用SQLite：
+
+```objective_c
+NSArray *documentsPaths=NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask , YES);
+NSString *databaseFilePath=[[documentsPaths objectAtIndex:0] stringByAppendingPathComponent:@"mydb"];
+//上面两句已经比较熟悉了吧！
+//打开数据库
+if (sqlite3_open([databaseFilePath UTF8String], &database)==SQLITE_OK) {
+        NSLog(@"sqlite dadabase is opened.");
+}
+else{ return;}//打开不成功就返回
+在打开了数据库的前提下，如果数据库没有表，那就开始建表了哦！
+char *error;
+const char *createSql="create table(id integer primary key autoincrement, name text)";
+if (sqlite3_exec(database, createSql, NULL, NULL, &error)==SQLITE_OK) {
+        NSLog(@"create table is ok.");
+}
+else
+{
+      NSLog(@"error: %s",error);
+      sqlite3_free(error);//每次使用完毕清空error字符串，提供给下一次使用
+}
+建表完成之后，就开始插入记录：
+
+const char *insertSql="insert into a person (name) values(‘gg’)";
+if (sqlite3_exec(database, insertSql, NULL, NULL, &error)==SQLITE_OK) {
+        NSLog(@"insert operation is ok.");
+}
+
+else
+{
+      NSLog(@"error: %s",error);
+      sqlite3_free(error);//每次使用完毕清空error字符串，提供给下一次使用
+}
+下一步，查询记录：
+
+const char *selectSql="select id,name from a person";
+sqlite3_stmt *statement;
+if (sqlite3_prepare_v2(database,selectSql, -1, &statement, nil)==SQLITE_OK) {
+        NSLog(@"select operation is ok.");
+}
+else
+{
+      NSLog(@"error: %s",error);
+      sqlite3_free(error);
+}
+while(sqlite3_step(statement)==SQLITE_ROW) {
+int _id=sqlite3_column_int(statement, 0);
+NSString *name=(char*)sqlite3_column_text(statement, 1);
+NSLog(@"row>>id %i, name %s",_id,name);
+}
+sqlite3_finalize(statement);
+
+最后，关闭数据库：
+
+sqlite3_close(database);
+```
+
+注意：写入数据库，字符串可以采用`char`方式，而从数据库中取出`char`类型，当char类型有表示中文字符时，会出现乱码。 这是因为数据库默认使用ascII编码方式。所以要想正确从数据库中取出中文，需要用`NSString`来接收从数据库取出的字符串。
+
+**5、ios的keychain的存储方式：**
+
+`keychain`的存储方式是存在了系统级的目录下，所以APP删除不会影响`keychain`下的数据，只有当系统重装或者越狱`keychain`数据才会改变 `keychain`可以用来存储用户密码或者当做设备`UUID`唯一识别码来使用（也有用来APP通信的） 要用到`keychain`需要导入`Security.framework` 主要用到其中4个API： `SecItemAdd`添加数据 `SecItemUpdate`更新数据 `SecItemDelete`删除数据 `SecItemCopyMatching`查找数据
+
+具体例子：
+
+```objective_c
++ (NSMutableDictionary *)getKeychainQuery:(NSString *)service {
+return [NSMutableDictionary dictionaryWithObjectsAndKeys:
+        (__bridge_transfer id)kSecClassGenericPassword,(__bridge_transfer id)kSecClass,
+        service, (__bridge_transfer id)kSecAttrService,
+        service, (__bridge_transfer id)kSecAttrAccount,
+        (__bridge_transfer id)kSecAttrAccessibleAfterFirstUnlock,(__bridge_transfer id)kSecAttrAccessible,
+        nil];
+}
+
++ (void)save:(NSString *)service data:(id)data {
+    //Get search dictionary
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    //Delete old item before add new item
+    SecItemDelete((__bridge_retained CFDictionaryRef)keychainQuery);
+    //Add new object to search dictionary(Attention:the data format)
+    [keychainQuery setObject:[NSKeyedArchiver archivedDataWithRootObject:data] forKey:(__bridge_transfer id)kSecValueData];
+    //Add item to keychain with the search dictionary
+    SecItemAdd((__bridge_retained CFDictionaryRef)keychainQuery, NULL);
+}
+
++ (id)load:(NSString *)service {
+    id ret = nil;
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    //Configure the search setting
+    [keychainQuery setObject:(id)kCFBooleanTrue forKey:(__bridge_transfer id)kSecReturnData];
+    [keychainQuery setObject:(__bridge_transfer id)kSecMatchLimitOne forKey:(__bridge_transfer id)kSecMatchLimit];
+    CFDataRef keyData = NULL;
+    if (SecItemCopyMatching((__bridge_retained CFDictionaryRef)keychainQuery, (CFTypeRef *)&keyData) == noErr) {
+        @try {
+            ret = [NSKeyedUnarchiver unarchiveObjectWithData:(__bridge_transfer NSData *)keyData];
+        } @catch (NSException *e) {
+            NSLog(@"Unarchive of %@ failed: %@", service, e);
+        } @finally {
+        }
+    }
+    return ret;
+}
+
++ (void)delete:(NSString *)service {
+    NSMutableDictionary *keychainQuery = [self getKeychainQuery:service];
+    SecItemDelete((__bridge_retained CFDictionaryRef)keychainQuery);
+}
+```
