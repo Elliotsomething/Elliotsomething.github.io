@@ -49,3 +49,5 @@ if (self.refreshType & RefreshTypePullUp) {
 }  
 ```
 和位操作与结合起来，这样就可以了。
+
+补充：简单的枚举建议用NS_ENUM，而有上述这种操作建议用NS_OPTIONS
