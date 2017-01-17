@@ -1,0 +1,148 @@
+---
+layout:     post
+title:      "iOS 之 一步步教你写下拉刷新"
+subtitle:   "Pulldown Refresh"
+date:       2017-1-17
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - pulldown refresh
+    - KVO
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+### 一步步教你写下拉刷新
+
+下面来写下拉刷新，看了很多网上的Demo，感觉很复杂，其实下拉刷新很简单；
+
+想要实现下拉刷新有很多种方法，比如`scrollView`的`delegate`方法，或者`KVO`监听`contentOffset`值，或者系统提供的`UIRefreshControl`类
+
+下拉刷新一般都是和tableView或者`scrollView`结合使用的，在写下拉刷新之前，我们首先需要知道几个知识点：
+
+1. `scrollView`的`delegate`、`contentOffset`和其他属性
+2. `KVO`
+3. 自定义动画
+4. 。。。
+
+知道了这几个之后就可以开始写下拉刷新了；
+
+下面以`tableView`的下拉刷新为例
+
+#### 下拉刷新简述：
+**`scrollView`的`delegate`实现下拉刷新原理：**
+
+`delegate`一般都是通过下面这几个回调方法实现的
+
+```objective_c
+(void)scrollViewDidScroll:(UIScrollView *)scrollView;
+(void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate;
+(void)scrollViewWillBeginDecelerating:(UIScrollView *)scrollView;
+(void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView;
+```
+1. 任何`contentOffset`的变化都会触发 `scrollViewDidScroll` 的回调。
+2. 用户停止拖拽时会除烦 `scrollViewDidEndDragging:willDecelerate:` 。
+3. 如果 `decelerate` 为真，触发 `scrollViewWillBeginDecelerating:` ，
+4. 并且在停止时触发 `scrollViewDidEndDecelerating:` 。
+
+
+**KVO监听contentOffset值实现下拉刷新原理：**
+首先我们需要知道`tableView`下拉的时候，`tableView`的`contentOffset`值是会跟随下拉而变化的，那么在下拉到一定距离的时候，这个时候可以开始播放自定义的动画了（我的是转圈动画），同时手指松开`tableView`，`tableView`自动弹回一定距离，继续动画；一段时间后动画结束，`tableView`弹回原来位置；也就是根据`contentOffset`值的值变化来实现逻辑；
+
+
+**系统提供的UIRefreshControl类实现下拉刷新：**
+忽略；
+
+
+#### 下拉刷新详细步骤：（以`KVO`监听`contentOffset`值为例）
+**下面开始讲下拉刷新的详细步骤**
+
+首先我们需要写一个用于播放动画的`View`，我把它命名为`YHRefreshControl`
+
+```objective_c
+@implementation YHRefreshControl
+- (id)init
+{
+	self = [super initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 60)];
+	if (self)
+	{
+		//初始化动画，状态
+	}
+	return self;
+}
+@end
+```
+
+然后写一个通用的`TableView`的子类，将`YHRefreshControl`加到该子类上，以后的下拉刷新都用该子类`tableView`，可以封装成一个框架
+
+```objective_c
+@interface YHTableViewRefreshControl : UITableView
+@property (nonatomic, readonly, strong) YHRefreshControl *yRefreshControl;
+@implementation YHTableViewRefreshControl
+@synthesize yRefreshControl;
+- (void)dealloc
+{
+	yRefreshControl = nil;
+}
+- (YHRefreshControl *)yRefreshControl{
+	if(yRefreshControl == nil){
+		yRefreshControl = [[YHRefreshControl alloc] init];
+		[self addSubview:yRefreshControl];//加上YHRefreshControl
+	}
+	return yRefreshControl;
+}
+@end
+```
+
+然后在`YHRefreshControl`加入`KVO`监听父视图`tableView`的`contentOffset`
+
+```objective_c
+//在YHRefreshControl中
+@property (nonatomic, readonly) UITableView *superTableView;
+- (UITableView *)superTableView //UITableView或者UIScrollView
+{
+	NSAssert([self.superview isKindOfClass:[UIScrollView class]] || self.superview == nil, @"%@'s superview should be a UITableView, but now is %@", self.class, self.superview.class);
+
+	return (UITableView *)self.superview;
+}
+- (void)willMoveToSuperview:(UIView *)newSuperview
+{
+	//添加到superview时，调整自身的frame
+	self.frame = CGRectMake(0, -self.frame.size.height, newSuperview.frame.size.width, self.frame.size.height);
+}
+- (void)didMoveToSuperview
+{
+	//添加到superview时，添加观察上层UITableView的contentOffset
+	[self.superTableView addObserver:self forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
+}
+- (void)removeFromSuperview
+{
+	if(self.superTableView)
+	{
+		//移除时，取消观察contentOffset
+		[self.superTableView removeObserver:self forKeyPath:@"contentOffset"];
+	}
+	[super removeFromSuperview];
+}
+
+```
+
+最后在`YHRefreshControl`回调刷新成功或者失败的事件（可以是`block`或者`delegate`）
+
+```objective_c
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
+	if([keyPath isEqualToString:@"contentOffset"])
+  {
+    //处理逻辑
+  }
+}
+```
+
+#### 总结
+
+下面总结一下写下拉刷新的步骤，使用KVO监听`contentOffset`的值变化，添加动画效果，完成下拉后回调事件；其实下拉刷新还是蛮简单的，如果想要更加酷炫的，可以自己写动画，或者根据这个思路去写自己的下拉刷新；同样的上拉刷新也是如此，明白原理之后再去写复杂的上下拉刷新就得心应手了，再复杂的需求也难不倒了；
+
+[demo在此Github](https://github.com/Elliotsomething/PulldownRefreshDemo)
