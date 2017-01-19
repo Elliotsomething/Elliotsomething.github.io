@@ -47,18 +47,17 @@ tags:
 3. 如果 `decelerate` 为真，触发 `scrollViewWillBeginDecelerating:` ，
 4. 并且在停止时触发 `scrollViewDidEndDecelerating:` 。
 
-
 **KVO监听contentOffset值实现下拉刷新原理：**
 
 首先我们需要知道`tableView`下拉的时候，`tableView`的`contentOffset`值是会跟随下拉而变化的，那么在下拉到一定距离的时候，这个时候可以开始播放自定义的动画了（我的是转圈动画），同时手指松开`tableView`，`tableView`自动弹回一定距离，继续动画；一段时间后动画结束，`tableView`弹回原来位置；也就是根据`contentOffset`值的值变化来实现逻辑；
-
 
 **系统提供的UIRefreshControl类实现下拉刷新：**
 
 忽略；
 
+#### 下拉刷新详细步骤：
+（以`KVO`监听`contentOffset`值为例）
 
-#### 下拉刷新详细步骤：（以`KVO`监听`contentOffset`值为例）
 **下面开始讲下拉刷新的详细步骤**
 
 首先我们需要写一个用于播放动画的`View`，我把它命名为`YHRefreshControl`
