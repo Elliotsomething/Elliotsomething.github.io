@@ -1,0 +1,35 @@
+---
+layout:     post
+title:      "每日一算(1)"
+subtitle:   "daily algorithm（1）"
+date:       2017-1-20
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - algorithm
+---
+
+毕业之后很少用算法，感觉思维都有点僵化了，一道很简单的算法题也要想半天，好歹自己也是在ACM队混过的，怎么能这么菜呢，觉得还是要捡起算法，这里记录我每天刷一道算法题，慢慢积累；
+
+### 牛顿迭代算法
+
+**题：不用库函数，编写一个函数，求整数N的开方**
+
+```objective_c
+#define  ABS(VAL)   ((VAL>0)?(VAL):(-VAL))
+double sqrt(float x)
+{
+    double g0,g1;
+    g0=x/2;
+    g1=(g0+x/g0)/2;
+    while(ABS(g0-g1)>0.001)
+    {
+        go=g1;
+        g1=(g0+x/g0)/2;
+    }
+    return g1;
+}
+```
+
+这题算是网上的标准解法了，拿来练下手；
