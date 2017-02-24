@@ -1,0 +1,344 @@
+---
+layout:     post
+title:      "日志上传很简单(一)搭建简易的APPHTTP服务器"
+subtitle:   "LogFile Upload Is Very Simple(一) -- Build A Simple HTTP Server"
+date:       2017-2-25
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - HTTP Server
+    - CFNetwork
+---
+
+
+### 日志上传很简单(一)搭建简易的APPHTTP服务器
+
+首先我们来搭建一个简易的HTTP服务器，用于APP端的文件下载，这样做的目的是方便开发人员查看日志；做完之后的结果是，只要知道APP端的ip，就能够查看其日志，这样是不是方便（很恐怖:),幸好我是有职业道德的，只用来看日志）；
+
+当程序运行的时候，会在8088端口运行一个HTTP服务，你只需要在浏览器输入APP端的IP地址加上8088端口号，就可以访问日志文件的内容（或者下载文件）。
+
+#### 简述
+在APP端创建一个`socket`，作为`server`端监听8088端口；当有客户端接入进来的时候，检测数据可用性，当确认请求正确后，返回响应数据（也就是文件内容），完成之后关闭接口，这样一个简易的`HTTP`服务器就完成了；
+
+#### 详细步骤
+新建一个单例类，`HTTPServer`类基于`NSObjetct`，用于管理`socket`端口连接和客户端的请求处理；
+
+```objective_c
++ (HTTPServer *)sharedHTTPServer
+{
+	static HTTPServer * httpServer;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		httpServer = [[HTTPServer alloc]init];
+	});
+	return httpServer;
+}
+```
+
+新建一个`start`函数，在`start`函数中创建一个`socket`端口，然后创建文件句柄，添加连接监听；如果想要详细了解`socket`的话，可以看下我的[这篇文章](https://elliotsomething.github.io/2015/08/29/iOS-%E4%B9%8B-Socket%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/)，这里不做详细介绍，有注释应该都能看懂了;
+
+```objective_c
+	//创建socket
+	socket = CFSocketCreate(kCFAllocatorDefault, PF_INET, SOCK_STREAM, IPPROTO_TCP, 0, NULL, NULL);
+	if (!socket)
+	{
+		NSLog(@"Unable to create socket.");
+		return;
+	}
+	int reuse = true;
+	int fileDescriptor = CFSocketGetNative(socket);//返回与CFSocket对象关联的本机套接字。
+	if (setsockopt(fileDescriptor, SOL_SOCKET, SO_REUSEADDR,
+				   (void *)&reuse, sizeof(int)) != 0)//设置允许重用本地地址和端口
+	{
+		NSLog(@"Unable to set socket options.");
+		return;
+	}
+	//定义sockaddr_in类型的变量，该变量将作为CFSocket的地址
+	struct sockaddr_in Socketaddr;
+	memset(&Socketaddr, 0, sizeof(Socketaddr));
+	Socketaddr.sin_len = sizeof(Socketaddr);
+	Socketaddr.sin_family = AF_INET;
+	//设置该服务器监听本机任意可用的IP地址
+	//设置服务器监听地址
+	Socketaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	//设置服务器监听端口
+	Socketaddr.sin_port = htons(8088);
+	//将IPv4的地址转换为CFDataRef
+	CFDataRef address = CFDataCreate(kCFAllocatorDefault, (UInt8 *)&Socketaddr, sizeof(Socketaddr));
+	//将CFSocket绑定到指定IP地址
+	if(CFSocketSetAddress(socket, address) != kCFSocketSuccess) {
+		NSLog(@"Unable to bind socket to address.");
+		return ;
+	}
+```
+上面的代码创建了一个`socket`套接字，并将8088作为端口；
+接下来是使用该`socket`作为文件描述符，创建一个文件句柄并打开连接：
+
+```objective_c
+	//使用socket作为fileDescriptor为套接字创建文件句柄。需要手动关闭
+	listeningHandle = [[NSFileHandle alloc]initWithFileDescriptor:fileDescriptor closeOnDealloc:YES];
+	//在后台接受套接字连接（仅适用于流式套接字），并为通信通道的“近”（客户端）端创建文件句柄。
+	[listeningHandle acceptConnectionInBackgroundAndNotify];
+```
+然后加入监听，当有客户端连接8088端口的时候，进入监听函数，然后去处理请求数据：
+
+```objective_c
+	//有客户端连接进来的监听函数（也可以是上面CFSocketCreate创建的回调函数）
+	[[NSNotificationCenter defaultCenter]
+		addObserver:self
+		selector:@selector(receiveIncomingConnectionNotification:)
+		name:NSFileHandleConnectionAcceptedNotification
+		object:nil];
+
+-(void)receiveIncomingConnectionNotification:(NSNotification *)notification
+{
+	//todo
+}
+```
+当然有`start`函数就要有`stop`函数，用来结束`socket`连接
+
+```objective_c
+- (void)stop
+{
+	//移除客户端连接监听
+	[[NSNotificationCenter defaultCenter]
+		removeObserver:self
+		name:NSFileHandleConnectionAcceptedNotification
+		object:nil];
+
+	[responseHandlers removeAllObjects];
+
+	[listeningHandle closeFile];
+	listeningHandle = nil;
+
+	if (socket)
+	{
+		CFSocketInvalidate(socket);
+		CFRelease(socket);
+		socket = nil;
+	}
+
+}
+```
+然后在`viewController`里面或者你随意的其他地方调用
+
+```objective_c
+[[HTTPServer sharedHTTPServer] start];
+```
+
+到这里前期的工作就基本完成了，你可以试一下在监听函数打个断点，从pc端输入`127.0.0.1:8088`，看下会不会跑进监听函数，如果能进入监听函数，说明你已经成功了一大半了；
+
+接下来就是处理请求，然后返回响应数据了；一般来说客户端的请求`method`是`get`，解析参数比较简单，所以解析请求参数之后就可以返回对应的数据了；首先写一个简单的；当客户端请求成功之后，会进入上面所说的回调中，我们在那个方法里面处理请求参数
+
+```objective_c
+- (void)receiveIncomingConnectionNotification:(NSNotification *)notification
+{
+	NSDictionary *userInfo = [notification userInfo];
+	NSFileHandle *incomingFileHandle =
+	[userInfo objectForKey:NSFileHandleNotificationFileHandleItem];
+	if(incomingFileHandle)
+	{
+		//存入一个空消息对象
+		CFDictionaryAddValue(
+							 incomingRequests,
+							 (__bridge const void *)(incomingFileHandle),
+							 (__bridge const void *)((__bridge id)CFHTTPMessageCreateEmpty(kCFAllocatorDefault, TRUE)));
+		//客户端发送的请求数据，当文件句柄确定数据当前可用于在文件或通信信道中读取时，发布此通知。
+		[[NSNotificationCenter defaultCenter]
+			addObserver:self
+			selector:@selector(receiveIncomingDataNotification:)
+			name:NSFileHandleDataAvailableNotification
+			object:incomingFileHandle];
+		//准备接收客户端的请求数据，当数据可用时，此方法在当前线程上发布通知。您必须从具有活动运行循环的线程调用此方法。异步检查以查看数据是否可用。
+		[incomingFileHandle waitForDataInBackgroundAndNotify];
+	}
+
+	[listeningHandle acceptConnectionInBackgroundAndNotify];
+}
+```
+当客户端接入`socket`的时候会生成一个用于接受数据的文件句柄，如果该`FileHandle`存在时，添加接受可用数据的监听，并在监听中处理可用的请求数据并返回响应数据
+
+```objective_c
+- (void)receiveIncomingDataNotification:(NSNotification *)notification
+{
+	//todo
+}
+```
+此时我们不妨新建一个专门用于管理响应数据的类`HTTPResponseHandler`，包括初始化响应数据，返回响应数据，结束响应数据以及关闭通道；
+
+首先初始化对象，并加入了通道数据可用监听，主要用来之后的关闭通道
+
+```objective_c
+- (id)initWithRequest:(CFHTTPMessageRef)aRequest
+			   method:(NSString *)method
+				  url:(NSURL *)requestURL
+		 headerFields:(NSDictionary *)requestHeaderFields
+		   fileHandle:(NSFileHandle *)requestFileHandle
+			   server:(HTTPServer *)aServer
+{
+	self = [super init];
+	if (self != nil)
+	{
+		request = (__bridge CFHTTPMessageRef)(__bridge id)aRequest;
+		requestMethod = method;
+		url = requestURL;
+		headerFields = requestHeaderFields;
+		fileHandle = requestFileHandle;
+		server = aServer;
+
+		[[NSNotificationCenter defaultCenter]
+			addObserver:self
+			selector:@selector(receiveIncomingDataNotification:)
+			name:NSFileHandleDataAvailableNotification
+			object:fileHandle];
+
+		[fileHandle waitForDataInBackgroundAndNotify];
+	}
+	return self;
+}
+```
+
+接下来是处理响应数据，这里主要是一些`CFHTTPMessageRef`对象的数据封装，并将其写入通道；`CFNetWork`对象的讲解这里不做解释，大家不熟悉的可以去看看文档。
+
+```objective_c
+- (void)startResponse
+{
+	NSData *fileData =
+	[NSData dataWithContentsOfFile:[HTTPResponseHandler pathForFile]];
+	//test code
+	NSString *str = @"hello world！";
+	fileData = [str dataUsingEncoding:NSUTF8StringEncoding];
+	CFHTTPMessageRef response =
+	CFHTTPMessageCreateResponse(
+								kCFAllocatorDefault, 200, NULL, kCFHTTPVersion1_1);
+	CFHTTPMessageSetHeaderFieldValue(
+									 response, (CFStringRef)@"Content-Type", (CFStringRef)@"text/plain");
+	CFHTTPMessageSetHeaderFieldValue(
+									 response, (CFStringRef)@"Connection", (CFStringRef)@"close");
+	CFHTTPMessageSetHeaderFieldValue(
+									 response,
+									 (CFStringRef)@"Content-Length",
+									 (__bridge CFStringRef)[NSString stringWithFormat:@"%ld", [fileData length]]);
+	CFDataRef headerData = CFHTTPMessageCopySerializedMessage(response);
+	@try
+	{
+		[fileHandle writeData:(__bridge NSData *)headerData];
+		[fileHandle writeData:fileData];
+	}
+	@catch (NSException *exception)
+	{
+		// Ignore the exception, it normally just means the client
+		// closed the connection from the other end.
+	}
+	@finally
+	{
+		CFRelease(headerData);
+		[server closeHandler:self];
+	}
+}
+```
+最后是结束响应了，代码没什么，就是移除监听，关闭通道等
+
+```objective_c
+- (void)receiveIncomingDataNotification:(NSNotification *)notification
+{
+	NSFileHandle *incomingFileHandle = [notification object];
+	NSData *data = [incomingFileHandle availableData];
+
+	if ([data length] == 0)
+	{
+		[server closeHandler:self];
+	}
+	[incomingFileHandle waitForDataInBackgroundAndNotify];
+}
+
+- (void)endResponse
+{
+	if (fileHandle)
+	{
+		[[NSNotificationCenter defaultCenter]
+			removeObserver:self
+			name:NSFileHandleDataAvailableNotification
+			object:fileHandle];
+		[fileHandle closeFile];
+		fileHandle = nil;
+	}
+	server = nil;
+}
+```
+
+好了，`HTTPResponseHandler`类的响应数据基本就这样处理完了，一些细节方面的大家可以看下我的demo，到时候别忘记`star`一下哈；
+
+接下来就是在原来的`HTTPServer`类中的数据监听函数中，调用`HTTPResponseHandler`响应数据的方法
+
+```objective_c
+- (void)receiveIncomingDataNotification:(NSNotification *)notification
+{
+	NSFileHandle *incomingFileHandle = [notification object];
+	NSData *data = [incomingFileHandle availableData];//可用数据
+	if ([data length] == 0)
+	{
+		[self stopReceivingForFileHandle:incomingFileHandle close:NO];
+		return;
+	}
+	/*消息对象*/
+	CFHTTPMessageRef incomingRequest =
+	(CFHTTPMessageRef)CFDictionaryGetValue(incomingRequests, (__bridge const void *)(incomingFileHandle));
+	if (!incomingRequest)
+	{
+		[self stopReceivingForFileHandle:incomingFileHandle close:YES];
+		return;
+	}
+	/*此函数将由newBytes指定的数据附加到通过调用CFHTTPMessageCreateEmpty创建的指定消息对象。数据是从客户端或服务器接收的传入的串行化HTTP请求或响应。在附加数据时，此函数对其进行反序列化，删除消息可能包含的任何基于HTTP的格式，并将消息存储在消息对象中。然后，您可以分别调用CFHTTPMessageCopyVersion，CFHTTPMessageCopyBody，CFHTTPMessageCopyHeaderFieldValue和CFHTTPMessageCopyAllHeaderFields来获取消息的HTTP版本，消息的正文，特定的头字段和所有的消息头。
+	 如果消息是请求，您还可以分别调用CFHTTPMessageCopyRequestURL和CFHTTPMessageCopyRequestMethod来获取消息的请求URL和请求方法。
+	 如果消息是响应，您还可以分别调用CFHTTPMessageGetResponseStatusCode和CFHTTPMessageCopyResponseStatusLine来获取消息的状态代码和状态行。*/
+	if (!CFHTTPMessageAppendBytes(
+								  incomingRequest,
+								  [data bytes],
+								  [data length]))
+	{
+		[self stopReceivingForFileHandle:incomingFileHandle close:YES];
+		return;
+	}
+	//调用CFHTTPMessageAppendBytes后，调用此函数以查看消息头是否完成。
+	if(CFHTTPMessageIsHeaderComplete(incomingRequest))
+	{
+		HTTPResponseHandler *handler =
+		[HTTPResponseHandler
+		 handlerForRequest:incomingRequest
+		 fileHandle:incomingFileHandle
+		 server:self];
+
+		[responseHandlers addObject:handler];
+		[self stopReceivingForFileHandle:incomingFileHandle close:NO];
+
+		[handler startResponse];
+		return;
+	}
+
+	[incomingFileHandle waitForDataInBackgroundAndNotify];
+}
+```
+
+最后移除监听关闭通道
+
+```objective_c
+- (void)closeHandler:(HTTPResponseHandler *)aHandler
+{
+	[aHandler endResponse];
+	[responseHandlers removeObject:aHandler];
+}
+```
+
+至此整个demo基本就完成了，完成的效果是这样的
+<img src="https://Elliotsomething.GitHub.io/images/post-HTTPServer-demo-01.png">
+
+总结：
+通过该`HTTPServerdemo`你可以学到的技术有`CFSocket`，`kvo`，`NSFileHandle`，以及`CFHTTPMessage`等一些其他`CFNetwork`框架中的知识；
+该demo主要是用来访问APP端沙箱中的一些文件数据等，你可以用它来查看日志文件，或者一些用户数据；
+
+下一篇会继续讲`HTTPServer`的进阶篇，具体的去处理get请求参数；
+
+[demo在此](https://github.com/Elliotsomething/HTTPServerDemo)（别忘记star一下哈）
