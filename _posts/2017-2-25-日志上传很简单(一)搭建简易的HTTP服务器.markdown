@@ -12,7 +12,7 @@ tags:
     - CFNetwork
     - KVO
 ---
-
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
 
 ### 日志上传很简单(一)搭建简易的APPHTTP服务器
 
@@ -292,7 +292,10 @@ tags:
 		[self stopReceivingForFileHandle:incomingFileHandle close:YES];
 		return;
 	}
-	/*此函数将由newBytes指定的数据附加到通过调用CFHTTPMessageCreateEmpty创建的指定消息对象。数据是从客户端或服务器接收的传入的串行化HTTP请求或响应。在附加数据时，此函数对其进行反序列化，删除消息可能包含的任何基于HTTP的格式，并将消息存储在消息对象中。然后，您可以分别调用CFHTTPMessageCopyVersion，CFHTTPMessageCopyBody，CFHTTPMessageCopyHeaderFieldValue和CFHTTPMessageCopyAllHeaderFields来获取消息的HTTP版本，消息的正文，特定的头字段和所有的消息头。
+	/*此函数将由newBytes指定的数据附加到通过调用CFHTTPMessageCreateEmpty创建的指定消息对象。数据是从客户端或服务器接收的传入的串行
+	化HTTP请求或响应。在附加数据时，此函数对其进行反序列化，删除消息可能包含的任何基于HTTP的格式，并将消息存储在消息对象中。然后，您可以分别
+	调用CFHTTPMessageCopyVersion，CFHTTPMessageCopyBody，CFHTTPMessageCopyHeaderFieldValue
+	和CFHTTPMessageCopyAllHeaderFields来获取消息的HTTP版本，消息的正文，特定的头字段和所有的消息头。
 	 如果消息是请求，您还可以分别调用CFHTTPMessageCopyRequestURL和CFHTTPMessageCopyRequestMethod来获取消息的请求URL和请求方法。
 	 如果消息是响应，您还可以分别调用CFHTTPMessageGetResponseStatusCode和CFHTTPMessageCopyResponseStatusLine来获取消息的状态代码和状态行。*/
 	if (!CFHTTPMessageAppendBytes(
