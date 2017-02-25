@@ -10,6 +10,7 @@ tags:
     - iOS
     - HTTP Server
     - CFNetwork
+    - KVO
 ---
 
 
@@ -335,7 +336,7 @@ tags:
 至此整个demo基本就完成了，完成的效果是这样的
 <img src="https://Elliotsomething.GitHub.io/images/post-HTTPServer-demo-01.png">
 
-总结：
+#### 总结
 通过该`HTTPServerdemo`你可以学到的技术有`CFSocket`，`kvo`，`NSFileHandle`，以及`CFHTTPMessage`等一些其他`CFNetwork`框架中的知识；
 该demo主要是用来访问APP端沙箱中的一些文件数据等，你可以用它来查看日志文件，或者一些用户数据；
 
