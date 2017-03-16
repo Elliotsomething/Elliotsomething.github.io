@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "日志上传很简单(一)搭建简易的APPHTTP服务器"
+title:      "iOS日志上传很简单(一)搭建简易的HTTP服务器"
 subtitle:   "LogFile Upload Is Very Simple(一) -- Build A Simple HTTP Server"
 date:       2017-2-25
 author:     "Elliot"
@@ -14,7 +14,7 @@ tags:
 ---
 **版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
 
-### 日志上传很简单(一)搭建简易的APPHTTP服务器
+### iOS日志上传很简单(一)搭建简易的HTTP服务器
 
 首先我们来搭建一个简易的HTTP服务器，用于APP端的文件下载，这样做的目的是方便开发人员查看日志；做完之后的结果是，只要知道APP端的ip，就能够查看其日志，这样是不是方便（很恐怖:),幸好我是有职业道德的，只用来看日志）；
 
