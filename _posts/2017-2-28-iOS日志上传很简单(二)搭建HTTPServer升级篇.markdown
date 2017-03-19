@@ -101,4 +101,4 @@ selectorForMethod = @{@"GET": @{@"download": NSStringFromSelector(@selector(deal
 
 #### 结束
 
-这一篇是进阶篇，基本就是模拟了HTTP的服务器处理请求数据并返回响应数据；只要理解了整个思路，基本自己就慢慢实现出来，这里只讲了一些大概的实现，具体的实现细节大家可以去看[demo]
+这一篇是进阶篇，基本就是模拟了HTTP的服务器处理请求数据并返回响应数据；只要理解了整个思路，基本自己就慢慢实现出来，这里只讲了一些大概的实现，具体的实现细节大家可以去看[demo](https://github.com/Elliotsomething/HTTPServerDemo)（别忘记star一下哈）
