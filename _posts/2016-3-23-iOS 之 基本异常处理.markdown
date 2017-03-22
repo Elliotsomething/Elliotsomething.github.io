@@ -10,7 +10,7 @@ tags:
     - iOS
     - NSArray
     - NSDictionary
-    - KVO
+    - Runtime
 ---
 **版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
 
@@ -36,7 +36,8 @@ NSString *str= arr[0];
 ```
 
 **一般报错如下：**
-```
+
+```objective_c
 '*** -[__NSArray0 objectAtIndex:]: index 0 beyond bounds for empty NSArray'
 ```
 这种情况的处理其实很简单，只要判断一下访问数组的边界值长度就行了，但是难保以后不会出现这种情况，所以用hook是最便捷的办法，代码如下：
@@ -56,13 +57,11 @@ NSString *str= arr[0];
 - (id)moa_empty_objectAtIndex:(NSUInteger)index
 {
      NSLog(@"数组越界");
-     NSAssert(0, nil);
      return nil;
 }
 - (id)moa_objectAtIndex:(NSUInteger)index
 {
      if (index >= [self count]) {
-          NSAssert(0, nil);
           NSLog(@"数组越界");
           return nil;
      }
@@ -72,37 +71,30 @@ NSString *str= arr[0];
 {
      if (index >= [self count]) {
           NSLog(@"数组越界");
-          NSAssert(0, nil);
           return ;
      }
      [self moa_removeObjectAtIndex:index];
 }
-
 - (void)moa_insertObject:(id)anObject atIndex:(NSUInteger)index
 {
      if (!anObject) {
           NSLog(@"object is nil");
-          NSAssert(0, nil);
           return;
      }
      [self moa_insertObject:anObject atIndex:index];
 }
-
 - (void)moa_replaceObjectAtIndex:(NSUInteger)index withObject:(id)anObject
 {
      if (index >= [self count]) {
           NSLog(@"数组越界");
-          NSAssert(0, nil);
           return ;
      }
      if (!anObject) {
           NSLog(@"object is nil");
-          NSAssert(0, nil);
           return;
      }
      [self moa_replaceObjectAtIndex:index withObject:anObject];
 }
-
 ```
 
 ok，以上代码完成后，只要以后有访问数组的，都会通过`hook`之后的方法，该方法都加入了边界值判断，这样就一劳永逸的解决问题了；但是，but，因为各个项目业务逻辑以及使用的技术不同，有那么一点点可能使用`hook`方法，会造成其他崩溃，所以使用`hook`需谨慎；
@@ -127,7 +119,6 @@ ok，以上代码完成后，只要以后有访问数组的，都会通过`hook`
      id value = [self objectAtIndex:index];
      return value;
 }
-
 - (void)addObjectCheck:(id)object
 {
      if (!object) {
@@ -164,7 +155,7 @@ NSDictionary *dic = @{key:str};
 ```
 **报错日志如下：**
 
-```
+```objective_c
 '*** -[__NSPlaceholderArray initWithObjects:count:]: attempt to insert nil object from objects[0]'
 '*** -[__NSPlaceholderDictionary initWithObjects:forKeys:count:]: attempt to insert nil object from objects[0]'
 ```
@@ -178,7 +169,6 @@ NSDictionary *dic = @{key:str};
 **首先是数组/*NSArray*/**
 
 ```objective_c
-
 + (void)load {
      static dispatch_once_t onceToken;
      dispatch_once(&onceToken, ^{
@@ -236,7 +226,6 @@ NSDictionary *dic = @{key:str};
           return;
      }
      [self moa_insertObject:anObject atIndex:index];
-
 }
 - (void)moa_replaceObjectAtIndex:(NSUInteger)index withObject:(id)anObject
 {
@@ -289,7 +278,6 @@ NSDictionary *dic = @{key:str};
      }
      return [self moa_dictionaryWithObjects:safeObjects forKeys:safeKeys count:j];
 }
-
 - (instancetype)moa_initWithObjects:(const id [])objects forKeys:(const id<NSCopying> [])keys count:(NSUInteger)cnt {
      id safeObjects[cnt];
      id safeKeys[cnt];
@@ -370,7 +358,7 @@ NSDictionary *dic = @{@"key":[NSNull null]};
 ```
 **`crash`信息如下：**
 
-```
+```objective_c
 unrecognized selector sent to instance
 ```
 
@@ -416,7 +404,7 @@ unrecognized selector sent to instance
 
 crash信息如下：
 
-```
+```objective_c
 
 ```
 
