@@ -17,7 +17,7 @@ tags:
 ### iOS日志上传很简单(二)搭建HTTPServer升级篇
 
 上一篇介绍了一下怎么搭建一个简易的HttpServer，也就是直接在客户端上通过IP加上端口号直接访问APP的沙箱文件内容；
-没看过的可以移步看一下[搭建简易HTTPServer];
+没看过的可以移步看一下[搭建简易HTTPServer](https://elliotsomething.github.io/2017/02/25/%E6%97%A5%E5%BF%97%E4%B8%8A%E4%BC%A0%E5%BE%88%E7%AE%80%E5%8D%95(%E4%B8%80)%E6%90%AD%E5%BB%BA%E7%AE%80%E6%98%93%E7%9A%84HTTP%E6%9C%8D%E5%8A%A1%E5%99%A8/);
 
 #### 概述
 
@@ -90,12 +90,10 @@ HTTPServer处理请求，返回响应数据，这里同样也是和前面一样�
 
 ```objective_c
 selectorForMethod = @{@"GET": @{@"download": NSStringFromSelector(@selector(dealDownloadFunction:andClientHandle:)),
-									@"delete": NSStringFromSelector(@selector(dealDeleteFunction:andClientHandle:)),
-									},
-						  @"POST": @{@"replace": NSStringFromSelector(@selector(dealReplaceFunction:andClientHandle:)),
-									 @"upload": NSStringFromSelector(@selector(dealUploadFunction:andClientHandle:)),
-									 }
-						  };
+@"delete": NSStringFromSelector(@selector(dealDeleteFunction:andClientHandle:)),},
+@"POST": @{@"replace": NSStringFromSelector(@selector(dealReplaceFunction:andClientHandle:)),
+@"upload": NSStringFromSelector(@selector(dealUploadFunction:andClientHandle:)),}
+};
 ```
 然后这四个方法分别处理对用的下载、删除、替换、上传这四个请求，基本的HTTPServer就此完成了；由于代码有点多，这里就不贴出来了，还有一些具体的实现细节大家可以去github上下载demo自己看；基本的实现细节就讲到这里，由于水平不够，可能有很多地方没讲清楚，大家如果有不懂的可以直接提问
 
