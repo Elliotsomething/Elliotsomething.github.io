@@ -41,7 +41,7 @@ tags:
 
 代码如下：
 
-```objective_C
+```objective_c
 static const NSString *html = @"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\r\n<head>\r\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\r\n<title>文件浏览器</title>\r\n</head>\r\n\r\n<body>\r\n**text**\r\n<table width=\"790\" height=\"30\" border=\"1\" align=\"center\">\r\n  <tr>\r\n    <td width=\"450\" height=\"30\"><div align=\"center\">名称</div></td>\r\n    <td width=\"160\"><div align=\"center\">编辑时间</div></td>\r\n    <td width=\"80\"><div align=\"center\">大小</div></td>\r\n    <td width=\"100\"><div align=\"center\">操作</div></td>\r\n</tr>\r\n**table**\r\n</table>\r\n</body>\r\n</html>";
 ```
 上面的代码是返回一个基本的网页，这种简单的html就不讲了；
