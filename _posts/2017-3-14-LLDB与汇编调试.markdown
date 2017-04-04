@@ -1,0 +1,232 @@
+---
+layout:     post
+title:      "LLDB与汇编调试-提高你的调试效率"
+subtitle:   "LLDB And Assembly Debugging"
+date:       2017-3-14
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - LLDB
+    - Assembly Debugging
+---
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+### LLDB与汇编调试-提高你的调试效率
+
+#### 汇编小炒
+首先讲一点汇编的知识，有助于理解系统的内部实现，以及在下断点时帮助分析汇编代码；
+
+**常见的寄存器**
+
+- 累加寄存器	AX(16位)	EAX（32位）	RAX（64位）
+- 基址寄存器	BX			EBX 			RBX
+- 计数寄存器	CX			ECX	 			RCX
+- 数据寄存器	DX			EDX	 			RDX
+- 堆栈基指针	BP			EBP	 			RBP
+- 变址寄存器	SI			ESI 			RSI
+- 堆栈顶指针	SP			ESP	 			RSP
+- 指令寄存器	IP			EIP  			RIP
+
+**常见的汇编指令**
+
+**一、数据传送指令**
+
+mov -- movw（16位）、movl（32位）、movq（64位）：寄存器寻址，mov 指令为双操作数指令，两个操作数中必须有一个是寄存器
+
+push： 入栈指令，入栈的操作数除不允许用立即数外，可以为通用寄存器，段寄存器(全部)和存储器。入栈时高位字节先入栈，低位字节后入栈.
+
+pop： 出栈指令，出栈操作数除不允许用立即数和CS段寄存器外, 可以为通用寄存器,段寄存器和存储器.
+
+XCHG(eXCHanG)：交换指令: 将两操作数值交换.
+
+XLAT(TRANSLATE)： 换码指令: 把一种代码转换为另一种代码.
+
+PUSHF (PUSH the Flags)： 标志进栈指令，　PUSHF //将标志寄存器的值压入堆栈顶部, 同时栈指针SP值减2
+
+POPF (POP the Flags)： 标志出栈指令，POPF //与PUSHF相反, 从堆栈的顶部弹出两个字节送到PSW寄存器中, 同时堆栈指针值加2
+
+**二、算术指令**
+
+ADD(ADD DST , SRC)： 加法指令，两个存储器操作数不能通过ADD指令直接相加, 即DST 和SRC必须有一个是通用寄存器操作数.
+
+ADC( ADd with Carry)带进位加法指令，执行操作: dst=dst+src+CF //与ADD不同之处是还要加上进位标志位的值.
+
+AAA (ASCII Adjust for Addition) 加法的ASCII调整指令；执行操作:执行之前必须先执行ADD或ADC指令,加法指令必须把两个非压缩的BCD码相加,并把结果存话在AL寄存器中.
+
+SUB(SUB DST , SRC)减法：不带借位的减法指令
+
+SBB ( SuBtract with Borrow) 带借位减法指令
+
+AAS (ASCII Adjust for Subtraction) 减法的ASCII调整指令；执行操作:执行之前必须先执行SUB或SBB指令,减法指令必须把两个非压缩的BCD码相减,并把结果存放在AL寄存器中.
+
+DEC(Decrement)减1，执行操作：OPR = OPR - 1
+
+NEG(Negate)求补，执行操作：opr = 0- opr //将操作数按位求反后末位加1.
+
+CMP(Compare)比较，执行操作：OPR1 - OPR2 //与SUB指令一样执行运算, 但不保存结果.比较情况：无符号数 有符号数
+
+乘法除法指令略；
+
+**三、逻辑指令**
+
+AND(and) 逻辑与，通常用于屏蔽某些位,即使某些位为0.
+
+OR(or) 逻辑或，常用于将某些位置1.
+
+NOT(not) 逻辑非
+
+XOR(exclusive or)异或，XOR指令常用于使某个操作数清零,同时使CF=0,清除进位标志.
+
+TEST(test) 测试指令，两个操作数相与的结果不保存，检测某位是否为1，通常与条件指令（je、jne）等一起使用；
+
+AND, OR , XOR 和 TEST都是双字节操作指令,操作数的寻址方式的规定与算术运算指令相同；NOT是单字节操作指令,不允许使用立即数.
+
+**四、串处理指令**
+
+MOVS 串传送指令
+
+STOS 存入串指令
+
+LODS 从串取指令
+
+CMPS 串比较指令，指令把由(SI)指向的数据段中的一个字(或字节)与由(DI)指向的附加段中的一个字(或字节)相减,但不保存结果
+
+SCAS 串扫描指令，该指令把AL(或AX)的内容与由(DI)指定的在附加段中的一个字节(或字)进行比较,并不保存结果
+
+**五、控制转移指令**
+
+**1、JMP(jmp) 无条件转移指令**
+
+JZ(或JE)(Jump if zero,or equal) 结果为零(或相等)则转移
+
+JNZ(或JNE)(Jump if not zero,or not equal) 结果不为零(或不相等)则转移
+
+JS(Jump if sign) 结果为负则转移
+
+JNS(Jump if not sign) 结果为正则转移
+
+JO(Jump if overflow) 溢出则转移
+
+JNO(Jump if not overflow) 不溢出则转移
+
+JL(或LNGE)(Jump if less,or not greater or equal) 小于,或者不大于或者等于则转移
+
+JNL(或JGE)(Jump if not less,or greater or equal)不小于,或者大于或者等于则转移
+
+JLE(或JNG)(Jump if less or equal,or not greater) 小于或等于,或者不大于则转移
+
+JNLE(或JG)(Jump if not less or equal,or greater) 不小于或等于,或者大于则转移
+
+**2、LOOP 循环指令**
+
+LOOPZ/LOOPE 当为零或相等时循环指令
+
+LOOPNZ/LOOPNE 当不为零或不相等时循环指令
+
+CALL：调用指令，先将过程的返回地址(即CALL的下一条指令的首地址)存入堆栈,然后转移到过程入口地址执行子程序.
+
+RET：返回指令，子程序返回指令RET放在子程序末尾,它使子程序在执行完全部任务后返回主程序继续执行被打断后的程序.返回地址在子程序调用时入栈保存的断点地址-IP或IP和CS.
+
+以上就是汇编的常用指令了，对iOS调试来说基本够用；接下来讲的是ARM处理器的16个寄存器
+
+**ARM处理器的16个寄存器**
+
+- r0-r3：用于存放传递给函数的参数；
+- r4-r11：用于存放函数的本地参数；
+- r12：是内部程序调用暂时寄存器。这个寄存器很特别是因为可以通过函数调用来改变它；
+- r13：栈指针sp(stack pointer)。在计算机科学内栈是非常重要的术语。寄存器存放了一个指向栈顶的指针。看这里了解更多关于栈的信息；
+- r14：是链接寄存器lr(link register)。它保存了当目前函数返回时下一个函数的地址；
+- r15：是程序计数器pc(program counter)。它存放了当前执行指令的地址。在每个指令执行完成后会自动增加；
+
+汇编常用的基本知识大概就是上面这些了，接下来讲lldb加汇编调试；
+
+#### lldb调试
+
+lldb调试对iOS开发来说应该是非常熟悉的，基本上每天都要用到，这里基本的用法就不多说了，大家可以去看objc.io上的一篇文章[与调试器共舞 - LLDB 的华尔兹](https://objccn.io/issue-19-2/)
+
+接下来我要讲的是一些稍微深入一点的东西，如果是大神的话可以直接跳过；
+
+**使用汇编调试帮助理解系统内部实现**
+
+接下来我们用一个例子来理解，仅供参考；
+我们都知道OC语言的消息发送机制，使用动态绑定机制来决定需要调用的方法；而对于Objective-C的底层实现，都是C的函数。对象在收到消息之后，调用了哪些方法，完全取决于Runtime来决定，甚至可以在Runtime期间改变。当调用一个方法时首先是通过objc_msgSend函数给对象发送消息，然后在根据objc_msgSend函数中的参数调用对象对应的方法；
+
+objc_msgSend函数的定义如下：
+
+```objective_c
+void objc_msgSend(id self, SEL cmd, ...)
+```
+也就是第一个参数是调用方法的对象，第二个参数是选择子，后面的参数就是调用方法后面传的参数了；（runtime开源，大家可以去网上看具体实现，这里只介绍大概，主要还是通过汇编分析过程）
+
+接下来我们写一个很简单的方法调用，分析其内部实现；
+设置一个对象为nil，然后调用对象的方法，我们看下会发生什么，代码如下：
+
+```objective_c
+NSString *str = nil;
+[str length];
+```
+在该代码上加个断点，然后下一个断点在objc_msgSend处：
+![](/Users/neo/Desktop/tmp293fd9ae.png)￼
+
+接下来跑进断点，如下图：
+![](/Users/neo/Desktop/tmp505bbc15.png)
+
+我们可以看到汇编代码，是不是很熟悉，通过上面的学习，这些汇编基本都能够理解了，就算有个别不理解也无伤大雅；
+
+ok，我们来分析一下里面的具体逻辑
+
+首先第一行就是一个test，然后我们把%rdi的内容打出来看一下
+![](/Users/neo/Desktop/tmp629059d7.png)
+发现为空，也就是接受消息的对象为nil，这个时候看第二行代码，判断如果test结果为不大于就转移到104行，然后我们看一下104行代码知道如果该对象为空的话就转移到126行；
+在看126行代码
+![](/Users/neo/Desktop/tmp7d6c2603.png)
+基本都是清空操作然后返回；
+
+所以这种是接受消息的对象为nil的情况，我们大概可以知道，当接受消息的对象为nil，内部有判断如果为nil则直接返回不执行下面的操作了；
+
+那么我们设置对象不为nil，情况又是怎么样的呢？继续往下看；将上面的例子改一下
+
+```objective_c
+NSString *str = @"";
+[str length];
+```
+断点操作一样，我们跑过jle之后继续往下跑，知道寻址操作完成，接下来讲几个寄存器都打印出来
+![](/Users/neo/Desktop/tmp2175954b.png)
+我们可以到接收消息的对象是实际是`__NSCFConstantString`，而选择子`selector`为`length`；我们看到第9行代码是一个比较操作，也就是比较选择子是否一致（一般情况下是一致的，除非系统bug）
+；然后继续往下跑到11行，就直接转移到length方法去了；
+
+然后我们在length方法出下个断点：
+![](/Users/neo/Desktop/tmp77b380da.png)
+这样就进入length方法中去了，然后会看到length方法的内部其实是调用的C方法`_CFStringGetLength2`，然后返回结果；
+
+跑出函数之后，继续往下，会再进一次objc_msgSend，这个时候同样把寄存器的值都打印出来，会看到选择子变为了release了，接下来会调用release方法释放__NSCFConstantString对象
+![](/Users/neo/Desktop/tmp312285f3.png)
+我们可以知道临时对象系统会帮我们自动relese释放掉；
+
+到这里，我们大概分析了objc_msgSend发送消息的这一步其内部大概是如何实现的，其实内部还有很多其他细节逻辑；比如查询函数的IMP指针，当对象找不到方法时启动消息转发机制等，这里不多介绍，大家可以根据上面所述自己去实践;
+
+ok，接下来我们再通过一个例子来看系统内部我们看不到的实现，我们写一个字典通过下标写值的例子，代码如下：
+
+```objective_c
+NSMutableDictionary *dic = [NSMutableDictionary dictionary];
+dic[@""] = nil;
+```
+同样打个断点在objc_msgSend，然后按照上述步骤打印选择子，发现字典通过下标写值的方法名为`setObject:forKeyedSubscript:`
+，然后下个断点在`setObject:forKeyedSubscript:`处，看下其内部实现；
+![](/Users/neo/Desktop/Snip20170331_1.png)
+
+然后我们打印出几个寄存器的值，可以看到当obj为nil的时候，会调用`removeObjectForKey:`，然后返回；当obj不为nil的时候会调用`setObject:forKey:`，然后返回；
+
+打个断点在`removeObjectForKey:`会发现，其内部有key校验，当key为nil的时候，会抛出异常，也就是说该方法key不能为nil，否则会crash；
+![](/Users/neo/Desktop/Snip20170331_2.png)
+
+打个断点在`setObject:forKey:`会发现，其内部有obj和key的双校验，不能为nil，否则会抛异常，也就是说该方法key和obj都不能为nil，否则会crash；
+![](/Users/neo/Desktop/Snip20170331_3.png)
+
+注：setObject:forKeyedSubscript:该方法在iOS 8的模拟器上打断点运行，有点不一样，大家可以去实践一下；
+
+经过上述的分析，我们发现字典通过下标写值的一些内部逻辑是怎样的，以及有哪些需要情况会引起crash（虽然文档里都有写）；通过自己的分析可以完全理解，以后碰到不熟悉的API就可以通过这样来分析其内部逻辑；或者调试bug？
+
+ok，该篇内容大概就这么多了
