@@ -168,20 +168,21 @@ NSString *str = nil;
 [str length];
 ```
 在该代码上加个断点，然后下一个断点在objc_msgSend处：
-![](/Users/neo/Desktop/tmp293fd9ae.png)￼
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging1.png">
 
 接下来跑进断点，如下图：
-![](/Users/neo/Desktop/tmp505bbc15.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging2.png">
 
 我们可以看到汇编代码，是不是很熟悉，通过上面的学习，这些汇编基本都能够理解了，就算有个别不理解也无伤大雅；
 
 ok，我们来分析一下里面的具体逻辑
 
 首先第一行就是一个test，然后我们把%rdi的内容打出来看一下
-![](/Users/neo/Desktop/tmp629059d7.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging3.png">
 发现为空，也就是接受消息的对象为nil，这个时候看第二行代码，判断如果test结果为不大于就转移到104行，然后我们看一下104行代码知道如果该对象为空的话就转移到126行；
 在看126行代码
-![](/Users/neo/Desktop/tmp7d6c2603.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging4.png">
+
 基本都是清空操作然后返回；
 
 所以这种是接受消息的对象为nil的情况，我们大概可以知道，当接受消息的对象为nil，内部有判断如果为nil则直接返回不执行下面的操作了；
@@ -193,16 +194,19 @@ NSString *str = @"";
 [str length];
 ```
 断点操作一样，我们跑过jle之后继续往下跑，知道寻址操作完成，接下来讲几个寄存器都打印出来
-![](/Users/neo/Desktop/tmp2175954b.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging5.png">
+
 我们可以到接收消息的对象是实际是`__NSCFConstantString`，而选择子`selector`为`length`；我们看到第9行代码是一个比较操作，也就是比较选择子是否一致（一般情况下是一致的，除非系统bug）
 ；然后继续往下跑到11行，就直接转移到length方法去了；
 
 然后我们在length方法出下个断点：
-![](/Users/neo/Desktop/tmp77b380da.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging6.png">
+
 这样就进入length方法中去了，然后会看到length方法的内部其实是调用的C方法`_CFStringGetLength2`，然后返回结果；
 
 跑出函数之后，继续往下，会再进一次objc_msgSend，这个时候同样把寄存器的值都打印出来，会看到选择子变为了release了，接下来会调用release方法释放__NSCFConstantString对象
-![](/Users/neo/Desktop/tmp312285f3.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging7.png">
+
 我们可以知道临时对象系统会帮我们自动relese释放掉；
 
 到这里，我们大概分析了objc_msgSend发送消息的这一步其内部大概是如何实现的，其实内部还有很多其他细节逻辑；比如查询函数的IMP指针，当对象找不到方法时启动消息转发机制等，这里不多介绍，大家可以根据上面所述自己去实践;
@@ -215,15 +219,15 @@ dic[@""] = nil;
 ```
 同样打个断点在objc_msgSend，然后按照上述步骤打印选择子，发现字典通过下标写值的方法名为`setObject:forKeyedSubscript:`
 ，然后下个断点在`setObject:forKeyedSubscript:`处，看下其内部实现；
-![](/Users/neo/Desktop/Snip20170331_1.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging8.png">
 
 然后我们打印出几个寄存器的值，可以看到当obj为nil的时候，会调用`removeObjectForKey:`，然后返回；当obj不为nil的时候会调用`setObject:forKey:`，然后返回；
 
 打个断点在`removeObjectForKey:`会发现，其内部有key校验，当key为nil的时候，会抛出异常，也就是说该方法key不能为nil，否则会crash；
-![](/Users/neo/Desktop/Snip20170331_2.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging9.png">
 
 打个断点在`setObject:forKey:`会发现，其内部有obj和key的双校验，不能为nil，否则会抛异常，也就是说该方法key和obj都不能为nil，否则会crash；
-![](/Users/neo/Desktop/Snip20170331_3.png)
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging10.png">
 
 注：setObject:forKeyedSubscript:该方法在iOS 8的模拟器上打断点运行，有点不一样，大家可以去实践一下；
 
