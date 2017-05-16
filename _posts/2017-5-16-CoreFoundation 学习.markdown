@@ -205,9 +205,9 @@ int main(int argc, const char * argv[]) {
 
 ```
 // 执行結果
-compResult -1
-compResult 0
-compResult 1
+- compResult -1
+- compResult 0
+- compResult 1
 
 #### CFStringCompare 比较
 
@@ -223,10 +223,10 @@ int main(int argc, const char * argv[]) {
 }
 ```
 // 执行結果
-a : b -1
-b : b 0
-b : a 1
-A : a 0
+- a : b -1
+- b : b 0
+- b : a 1
+- A : a 0
 
 #### CFBoolean 比较
 
@@ -238,17 +238,18 @@ printf("kCFBooleanTrue : kCFBooleanFalse %d \n", kCFBooleanTrue == kCFBooleanFal
 ```
 
 ### CF 命名的共同点
+
 比如：
-CFArray
-CFArrayCreate
-CFArrayCreateCopy
-CFArrayCreateMutable
-CFArrayCreateMutableCopy
-CFString
-CFStringCreate
-CFStringCreateCopy
-CFStringCreateMutable
-CFStringCreateMutableCopy
+- CFArray
+- CFArrayCreate
+- CFArrayCreateCopy
+- CFArrayCreateMutable
+- CFArrayCreateMutableCopy
+- CFString
+- CFStringCreate
+- CFStringCreateCopy
+- CFStringCreateMutable
+- CFStringCreateMutableCopy
 
 #### CoreFoundation的Mutable型
 
