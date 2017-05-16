@@ -19,7 +19,7 @@ tags:
 
 ### CFStringRef 入门
 
-```
+```objective_c
 #ifdef __CONSTANT_CFSTRINGS__
 #define CFSTR(cStr)  ((CFStringRef) __builtin___CFStringMakeConstantString ("" cStr ""))
 #else
@@ -60,7 +60,7 @@ CFStringRef tmpFirstName =CFStringCreateWithCString(NULL, firstName_c, kCFString
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
     const void *values[] = {CFSTR("A"),CFSTR("B"),CFSTR("C")};
     CFArrayRef array = CFArrayCreate(kCFAllocatorDefault, values, 3, &kCFTypeArrayCallBacks);
@@ -72,7 +72,7 @@ int main(int argc, const char * argv[]) {
 
 其他用法：
 
-```
+```objective_c
 CFArrayRef myCFArrayRef = NULL;
 CFStringRef strs[2];
 strs[0] = CFSTR("BSBacktraceLogger");
@@ -93,7 +93,7 @@ CFStringRef aClassStr = CFArrayGetValueAtIndex(myCFArrayRef, 0);
 
 代码例子：
 
-```
+```objective_c
 CFIndex CFArrayGetLastIndexOfValue(CFArrayRef array, CFRange range, const void *value) {
     CFIndex idx;
     __CFGenericValidateType(array, __kCFArrayTypeID);
@@ -113,7 +113,7 @@ CFIndex CFArrayGetLastIndexOfValue(CFArrayRef array, CFRange range, const void *
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
     CFMutableArrayRef array;
     array = CFArrayCreateMutable(kCFAllocatorDefault,
@@ -138,7 +138,7 @@ int main(int argc, const char * argv[]) {
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
     printf("CFIndex value \n");
     CFIndex value = 123;
@@ -168,7 +168,7 @@ int main(int argc, const char * argv[]) {
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
 
     CFShow(kCFBooleanTrue);
@@ -184,7 +184,7 @@ int main(int argc, const char * argv[]) {
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
 
     CFIndex one = 1, two = 2;
@@ -213,7 +213,7 @@ compResult 1
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
     printf("a : b %ld \n", CFStringCompare(CFSTR("a"), CFSTR("b"), 0));
     printf("b : b %ld \n", CFStringCompare(CFSTR("b"), CFSTR("b"), 0));
@@ -232,7 +232,7 @@ A : a 0
 
 代码例子：
 
-```
+```objective_c
 printf("kCFBooleanTrue : kCFBooleanFalse %d \n", kCFBooleanTrue == kCFBooleanFalse);
     printf("kCFBooleanFalse : kCFBooleanFalse %d\n", kCFBooleanFalse == kCFBooleanFalse);
 ```
@@ -240,23 +240,14 @@ printf("kCFBooleanTrue : kCFBooleanFalse %d \n", kCFBooleanTrue == kCFBooleanFal
 ### CF 命名的共同点
 比如：
 CFArray
-
 CFArrayCreate
-
 CFArrayCreateCopy
-
 CFArrayCreateMutable
-
 CFArrayCreateMutableCopy
-
 CFString
-
 CFStringCreate
-
 CFStringCreateCopy
-
 CFStringCreateMutable
-
 CFStringCreateMutableCopy
 
 #### CoreFoundation的Mutable型
@@ -278,7 +269,7 @@ CFStringCreateMutableCopy
 
 代码例子：
 
-```
+```objective_c
 int main(int argc, const char * argv[]) {
 
     CFMutableArrayRef array;
