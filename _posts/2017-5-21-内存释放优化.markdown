@@ -1,0 +1,47 @@
+---
+layout:     post
+title:      "iOS 之 内存释放优化"
+subtitle:   "Optimization_of_MemoryRelease"
+date:       2017-5-21
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - MemoryRelease
+    - Optimization
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+### 内存释放优化
+
+对象的销毁虽然消耗资源不多，但累积起来也是不容忽视的。通常当容器类持有大量对象时，其销毁时的资源消耗就非常明显。而大多数对象都是在主线程创建的，所以在主线程大量的释放对象，这样是会消耗主线程一部分资源，阻塞UI，导致界面不流畅；当内存不足，或者大量释放对象时（实际一个自动释放池满释放），尤其明显；
+
+那么有什么方法可以避免这部分开销，加快内存释放吗？答案肯定是有的
+
+#### 方案一
+
+把对象捕获到 block 中，然后扔到后台队列去随便发送个消息以避免编译器警告，就可以让对象在后台线程销毁了。不消耗主线程资源。
+
+```objective_c
+NSArray *tmp = self.array;
+self.array = nil;
+dispatch_async(queue, ^{
+    [tmp class];
+});
+```
+但是这种方案每次都要手动去加入block，麻烦，而且侵入性强，可读性不高；
+
+#### 方案二
+
+通过使用fishhook去hook释放对象的free方法，新建一个子线程，直接将free方法丢到子线程去释放，不消耗主线程资源。
+
+```objective_c
+static void YHHook_Free(void* p){
+    dispatch_async(YHFreeGetDisplayQueue(), ^{
+        orig_free(unfreePoint);
+    });
+}
+```
+该方案可读性高，不侵入原有代码逻辑；
