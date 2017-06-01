@@ -210,27 +210,28 @@ struct section_64 { /* for 64-bit architectures */
 
 段名为大写，节名为小写。各节的作用主要有：
 
-```objective_c
-__text:　主程序代码
-__stub_helper:　用于动态链接的存根
-__symbolstub1:　用于动态链接的存根
-__objc_methname:　Objective-C 的方法名
-__objc_classname:　Objective-C 的类名
-__cstring:　硬编码的字符串
+| Section       | 作用           |
+| ------------- |:-------------:|
+|__text:　主程序代码
+|__stub_helper:　用于动态链接的存根
+|__symbolstub1:　用于动态链接的存根
+|__objc_methname:　Objective-C 的方法名
+|__objc_classname:　Objective-C 的类名
+|__cstring:　硬编码的字符串
 
-__lazy_symbol:　懒加载，延迟加载节，通过 dyld_stub_binder 辅助链接
-_got:　存储引用符号的实际地址，类似于动态符号表
-__nl_symbol_ptr:　非延迟加载节
-__mod_init_func:　初始化的全局函数地址，在 main 之前被调用
-__mod_term_func:　结束函数地址
-__cfstring:　Core Foundation 用到的字符串（OC字符串）
+|__lazy_symbol:　懒加载，延迟加载节，通过 dyld_stub_binder 辅助链接
+|_got:　存储引用符号的实际地址，类似于动态符号表
+|__nl_symbol_ptr:　非延迟加载节
+|__mod_init_func:　初始化的全局函数地址，在 main 之前被调用
+|__mod_term_func:　结束函数地址
+|__cfstring:　Core Foundation 用到的字符串（OC字符串）
 
-__objc_clsslist:　Objective-C 的类列表
-__objc_nlclslist:　Objective-C 的 +load 函数列表，比 __mod_init_func 更早执行
-__objc_const:　Objective-C 的常量
-__data:　初始化的可变的变量
-__bss:　未初始化的静态变量
-```
+|__objc_clsslist:　Objective-C 的类列表
+|__objc_nlclslist:　Objective-C 的 +load 函数列表，比 __mod_init_func 更早执行
+|__objc_const:　Objective-C 的常量
+|__data:　初始化的可变的变量
+|__bss:　未初始化的静态变量
+
 查看某段中某节的命令为： `otool -s __TEXT __text` 可执行文件。
 
 我们大概知道几个就可以了：
