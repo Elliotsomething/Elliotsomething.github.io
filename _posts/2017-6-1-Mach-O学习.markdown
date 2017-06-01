@@ -1,8 +1,8 @@
 ---
 layout:     post
-title:      "LLDB与汇编调试-提高你的调试效率"
-subtitle:   "LLDB And Assembly Debugging"
-date:       2017-3-14
+title:      "Mach-O学习"
+subtitle:   "Mach-O Note"
+date:       2017-6-1
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
