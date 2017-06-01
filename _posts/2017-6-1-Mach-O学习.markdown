@@ -25,7 +25,7 @@ tags:
 
 我们用 Xcode 构建一个程序的过程中，会把源文件 (.m 和 .h) 文件转换为一个可执行文件。这个可执行文件中包含的字节码会将被 CPU (iOS 设备中的 ARM 处理器或 Mac 上的 Intel 处理器) 执行。
 
-![](/Users/neo/Desktop/mach-o.png)
+<img src="https://Elliotsomething.GitHub.io/images/Mach_O_Study1.png">
 
 Mach-O 是 Apple 系统上（包括 MacOS 以及 iOS）的可执行文件格式。上图左边为官方图，右边为用 `MachOView` 软件打开的 `Mach-O` 文件图。可以非常清晰的看到，这种文件格式由文件头（`Header`）、加载命令（`Load Commands`）以及具体数据（`Segment&Section`）三部分组成。下面一一介绍。
 
@@ -71,7 +71,7 @@ struct mach_header_64 {
 
 分析文件头的 `otool` 命令为： `otool -h` 可执行文件 ，或者可视化强一点的 `otool -hv` 可执行文件。
 
-![](/Users/neo/Desktop/mach-o-header.png)
+<img src="https://Elliotsomething.GitHub.io/images/Mach_O_Study1.png">
 
 Fat 格式的文件（既包含有32位的二进制文件，又包含有64位的二进制文件），会在两个架构的二进制文件之前（也就是最开始的部分）有一个 Fat `Header`，其中 magic 为 0xCAFEBABE，然后是包含有的架构的个数，以及每个架构在文件中的偏移和大小等。
 
