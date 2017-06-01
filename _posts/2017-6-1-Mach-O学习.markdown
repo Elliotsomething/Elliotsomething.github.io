@@ -1,0 +1,529 @@
+---
+layout:     post
+title:      "LLDB与汇编调试-提高你的调试效率"
+subtitle:   "LLDB And Assembly Debugging"
+date:       2017-3-14
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - Mach-O
+    - 内核
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+### Mach-O学习
+出于写一个野指针的解决方案的目的，所以学习了一下Mach-O的一些知识，现记录如下：
+
+`Macho-O` 是什么？维基百科 的描述如下：
+
+`Mach-O` 是 `Mach object` 文件格式的缩写，它是一种用于记录可执行文件、对象代码、共享库、动态加载代码和内存转储的文件格式。作为 a.out 格式的替代品，Mach-O 提供了更好的扩展性，并提升了符号表中信息的访问速度。
+
+大多数基于 Mach 内核的操作系统都使用 `Mach-O`。`NeXTSTEP`、`OS X `和 `iOS` 是使用这种格式作为本地可执行文件、库和对象代码的例子。
+
+我们用 Xcode 构建一个程序的过程中，会把源文件 (.m 和 .h) 文件转换为一个可执行文件。这个可执行文件中包含的字节码会将被 CPU (iOS 设备中的 ARM 处理器或 Mac 上的 Intel 处理器) 执行。
+
+![](/Users/neo/Desktop/mach-o.png)
+
+Mach-O 是 Apple 系统上（包括 MacOS 以及 iOS）的可执行文件格式。上图左边为官方图，右边为用 `MachOView` 软件打开的 `Mach-O` 文件图。可以非常清晰的看到，这种文件格式由文件头（`Header`）、加载命令（`Load Commands`）以及具体数据（`Segment&Section`）三部分组成。下面一一介绍。
+
+#### Header
+
+```objective_c
+/*
+ * The 32-bit mach header appears at the very beginning of the object file for
+ * 32-bit architectures.
+ */
+struct mach_header {
+	uint32_t	magic;		/* mach magic number identifier */
+	cpu_type_t	cputype;	/* cpu specifier */
+	cpu_subtype_t	cpusubtype;	/* machine specifier */
+	uint32_t	filetype;	/* type of file */
+	uint32_t	ncmds;		/* number of load commands */
+	uint32_t	sizeofcmds;	/* the size of all the load commands */
+	uint32_t	flags;		/* flags */
+};
+/* Constant for the magic field of the mach_header (32-bit architectures) */
+#define	MH_MAGIC	0xfeedface	/* the mach magic number */
+#define MH_CIGAM	0xcefaedfe	/* NXSwapInt(MH_MAGIC) */
+/*
+ * The 64-bit mach header appears at the very beginning of object files for
+ * 64-bit architectures.
+ */
+struct mach_header_64 {
+	uint32_t	magic;		/* mach magic number identifier */
+	cpu_type_t	cputype;	/* cpu specifier */
+	cpu_subtype_t	cpusubtype;	/* machine specifier */
+	uint32_t	filetype;	/* type of file */
+	uint32_t	ncmds;		/* number of load commands */
+	uint32_t	sizeofcmds;	/* the size of all the load commands */
+	uint32_t	flags;		/* flags */
+	uint32_t	reserved;	/* reserved */
+};
+/* Constant for the magic field of the mach_header_64 (64-bit architectures) */
+#define MH_MAGIC_64 0xfeedfacf /* the 64-bit mach magic number */
+#define MH_CIGAM_64 0xcffaedfe /* NXSwapInt(MH_MAGIC_64) */
+```
+
+以上是 `Header` 在代码中的定义，它在文件中的作用主要是：使系统能够快速定位其运行环境以及文件类型等等。
+
+分析文件头的 `otool` 命令为： `otool -h` 可执行文件 ，或者可视化强一点的 `otool -hv` 可执行文件。
+
+![](/Users/neo/Desktop/mach-o-header.png)
+
+Fat 格式的文件（既包含有32位的二进制文件，又包含有64位的二进制文件），会在两个架构的二进制文件之前（也就是最开始的部分）有一个 Fat `Header`，其中 magic 为 0xCAFEBABE，然后是包含有的架构的个数，以及每个架构在文件中的偏移和大小等。
+
+`filetype `以及 `flags` 只列举了几个比较常见的定义，还有其他的详见`EXTERNAL_HEADERS/mach-o/x86_64/loader.h`。
+
+#### Load Commands
+
+`Load Commands` 是跟在 `Header` 后面的加载命令区，所有 `commands` 的大小总和即为 `Header->sizeofcmds` 字段，共有 `Header->ncmds` 条加载命令。
+
+```
+struct load_command {
+    uint32_t cmd;        /* type of load command */
+    uint32_t cmdsize;    /* total size of command in bytes */
+};
+```
+
+`Command` 以 `LC` 开头，不同的加载命令有不同的专有的结构体，`cmd` 和 `cmdsize` 是都有的，分别为命令类型（即命令名称），这条命令的长度。这些加载命令告诉系统应该如何处理后面的二进制数据，对系统内核加载器和动态链接器起指导作用。如果当前 `LC_SEGMENT` 包含 `section`，那么 `section` 的结构体紧跟在 `LC_SEGMENT` 的结构体之后，所占字节数由 `SEGMENT` 的 `cmdsize` 字段给出。
+
+**接下来是Cmd的作用**
+
+| Cmd       | 作用           |
+| ------------- |:-------------:|
+|LC_SEGMENT/LC_SEGMENT_64	|将对应的段中的数据加载并映射到进程的内存空间去|
+|LC_SYMTAB	|符号表信息
+|LC_DYSYMTAB	|动态符号表信息
+|LC_LOAD_DYLINKER	|启动动态加载连接器/usr/lib/dyld程序
+|LC_UUID	|唯一的 UUID，标示该二进制文件，128bit
+|LC_VERSION_MIN_IPHONEOS/MACOSX	|要求的最低系统版本（Xcode中的Deployment Target）
+|LC_MAIN	|设置程序主线程的入口地址和栈大小
+|LC_ENCRYPTION_INFO	|加密信息
+|LC_LOAD_DYLIB	|加载的动态库，包括动态库地址、名称、版本号等
+|LC_FUNCTION_STARTS	|函数地址起始表
+|LC_CODE_SIGNATURE	|代码签名信息
+
+使用命令 `otool -l` 可执行文件 可以查看加载命令区，使用 `otool -l` 可执行文件 | `grep cryptid` 可以查看是否加密。
+
+**补充：LC_DYSYMTAB符号表**
+
+`LC_DYSYMTAB`符号表有非常大的作用，捕获到线上 `Crash` 或者 卡顿 堆栈的地址信息时，需要进行符号还原，进而确认卡顿、崩溃的具体位置，这个使用就要使用到`LC_DYSYMTAB`符号表；
+
+LC_DYSYMTAB符号表定义如下：
+
+```objective_c
+struct symtab_command {
+    uint32_t    cmd;        /* LC_SYMTAB */
+    uint32_t    cmdsize;    /* sizeof(struct symtab_command) */
+    uint32_t    symoff;        /* symbol table offset */
+    uint32_t    nsyms;        /* number of symbol table entries */
+    uint32_t    stroff;        /* string table offset */
+    uint32_t    strsize;    /* string table size in bytes */
+};
+```
+符号表在 `Mach-O`目标文件中的地址可以通过`LC_SYMTAB`加载命令指定的 `symoff`找到，对应的符号名称在`stroff`，总共有`nsyms`条符号信息
+
+根据 ` Frame Pointer `拿到函数调用的地址（`address`），然后用`address` 、符号表、字符串表的对应关系找到对应的函数名，这就是符号解析的思路；
+
+
+#### Segment
+
+`Mach-O` 文件有多个段（`Segment`），每个段有不同的功能。然后每个段又分为很多小的 `Section`。 `LC_SEGMENT` 意味着这部分文件需要映射到进程的地址空间去。一般有以下段名：
+
+* `__PAGEZERO`:　空指针陷阱段，映射到虚拟内存空间的第一页，用于捕捉对 NULL 指针的引用。
+
+* `__TEXT`:　包含了执行代码以及其他只读数据。该段数据可以 `VM_PROT_READ`(读)、`VM_PROT_EXECUTE`(执行)，不能被修改。
+
+* `__DATA`:　程序数据，该段可写 `VM_PROT_WRITE/READ/EXECUTE`。
+
+* `__LINKEDIT`:　链接器使用的符号以及其他表。
+
+段的结构体定义为：
+
+```objective_c
+struct segment_command { /* for 32-bit architectures */
+	uint32_t	cmd;		/* LC_SEGMENT */
+	uint32_t	cmdsize;	/* includes sizeof section structs */
+	char		segname[16];	/* segment name */
+	uint32_t	vmaddr;		/* memory address of this segment 段的虚拟内存地址*/
+	uint32_t	vmsize;		/* memory size of this segment  段的虚拟内存大小*/
+	uint32_t	fileoff;	/* file offset of this segment  段在文件中的偏移量*/
+	uint32_t	filesize;	/* amount to map from the file  段在文件中的大小*/
+	vm_prot_t	maxprot;	/* maximum VM protection */
+	vm_prot_t	initprot;	/* initial VM protection */
+	uint32_t	nsects;		/* number of sections in segment */
+	uint32_t	flags;		/* flags */
+};
+struct segment_command_64 { /* for 64-bit architectures */
+	uint32_t	cmd;		/* LC_SEGMENT_64 */
+	uint32_t	cmdsize;	/* includes sizeof section_64 structs */
+	char		segname[16];	/* segment name */
+	uint64_t	vmaddr;		/* memory address of this segment */
+	uint64_t	vmsize;		/* memory size of this segment */
+	uint64_t	fileoff;	/* file offset of this segment */
+	uint64_t	filesize;	/* amount to map from the file */
+	vm_prot_t	maxprot;	/* maximum VM protection */
+	vm_prot_t	initprot;	/* initial VM protection */
+	uint32_t	nsects;		/* number of sections in segment */
+	uint32_t	flags;		/* flags */
+};
+```
+
+其中 `nsects` 字段就是表明该段中有多少个 `section`。文件映射的起始位置是由 `fileoff` 给出，映射到地址空间的 `vmaddr` 处。
+
+#### Section
+
+`Section` 是具体有用的数据存放的地方。它的结构体跟随在 `LC_SEGMENT` 结构体之后，`LC_SEGMENT` 又在 `Load Commands` 中，但是 `segment` 的数据内容是跟在 `Load Commands` 之后的。它的结构体为：
+
+```
+struct section { /* for 32-bit architectures */
+	char		sectname[16];	/* name of this section */
+	char		segname[16];	/* segment this section goes in */
+	uint32_t	addr;		/* memory address of this section 该节在内存中的起始位置*/
+	uint32_t	size;		/* size in bytes of this section 该节的大小*/
+	uint32_t	offset;		/* file offset of this section 该节的文件偏移*/
+	uint32_t	align;		/* section alignment (power of 2) 字节大小对齐*/
+	uint32_t	reloff;		/* file offset of relocation entries 重定位入口的文件偏移*/
+	uint32_t	nreloc;		/* number of relocation entries 需要重定位的入口数量*/
+	uint32_t	flags;		/* flags (section type and attributes) */
+	uint32_t	reserved1;	/* reserved (for offset or index) */
+	uint32_t	reserved2;	/* reserved (for count or sizeof) */
+};
+struct section_64 { /* for 64-bit architectures */
+	char		sectname[16];	/* name of this section */
+	char		segname[16];	/* segment this section goes in */
+	uint64_t	addr;		/* memory address of this section */
+	uint64_t	size;		/* size in bytes of this section */
+	uint32_t	offset;		/* file offset of this section */
+	uint32_t	align;		/* section alignment (power of 2) */
+	uint32_t	reloff;		/* file offset of relocation entries */
+	uint32_t	nreloc;		/* number of relocation entries */
+	uint32_t	flags;		/* flags (section type and attributes)*/
+	uint32_t	reserved1;	/* reserved (for offset or index) */
+	uint32_t	reserved2;	/* reserved (for count or sizeof) */
+	uint32_t	reserved3;	/* reserved */
+};
+```
+
+其中 `flag` 字段分为两个部分，一个是区域类型（`section type`），一个是区域属性（`section attributes`）。其中 `type` 是互斥的，即只能有一个类型，而 `attributes` 不是互斥的，可以有多个属性。如果段（segment）中的任何一个 `section` 拥有属性 `S_ATTR_DEBUG`，那么该段所有的 `section` 都必须拥有这个属性。具体的flag字段内容以及意义请参考 `/usr/include/mach-o/loader.h`。
+
+段名为大写，节名为小写。各节的作用主要有：
+
+```
+__text:　主程序代码
+__stub_helper:　用于动态链接的存根
+__symbolstub1:　用于动态链接的存根
+__objc_methname:　Objective-C 的方法名
+__objc_classname:　Objective-C 的类名
+__cstring:　硬编码的字符串
+
+__lazy_symbol:　懒加载，延迟加载节，通过 dyld_stub_binder 辅助链接
+_got:　存储引用符号的实际地址，类似于动态符号表
+__nl_symbol_ptr:　非延迟加载节
+__mod_init_func:　初始化的全局函数地址，在 main 之前被调用
+__mod_term_func:　结束函数地址
+__cfstring:　Core Foundation 用到的字符串（OC字符串）
+
+__objc_clsslist:　Objective-C 的类列表
+__objc_nlclslist:　Objective-C 的 +load 函数列表，比 __mod_init_func 更早执行
+__objc_const:　Objective-C 的常量
+__data:　初始化的可变的变量
+__bss:　未初始化的静态变量
+```
+查看某段中某节的命令为： `otool -s __TEXT __text` 可执行文件。
+
+我们大概知道几个就可以了：
+
+| Section       | 作用           |
+| ------------- |:-------------:|
+| __text	|代码段|
+| __cstring	|硬编码的字符串|
+| __const	const |关键词修饰过的变量|
+| __DATA.__data	|初始化的可变的变量|
+| __DATA.__bss	|未初始化的静态变量|
+
+
+具体的补充：
+
+| Section       | 作用           |
+| ------------- |:-------------:|
+|TEXT.text |只有可执行的机器码   |
+|TEXT.cstring |去重后的C字符串（不含中文字符）  |
+|TEXT.const |初始化过的常量   |
+|TEXT.stubs |符号桩。本质上是一小段会直接跳入lazybinding的表对应项指针指向的地址的代码。   |
+|TEXT.stub_helper |辅助函数。上述提到的lazybinding的表中对应项的指针在没有找到真正的符号地址的时候，都指向这。   |
+|TEXT.unwind_info |用于存储处理异常情况信息   |
+|TEXT.eh_frame |调试辅助信息   |
+|DATA.data |初始化过的可变的（静态/全局）数据   |
+|DATA.nl_symbol_ptr |非lazy-binding的指针表，每个表项中的指针都指向一个在装载过程中，被动态链机器搜索完成的符号   |
+|DATA.la_symbol_ptr |lazy-binding的指针表，每个表项中的指针一开始指向stub_helper   |
+|DATA.const |没有初始化过的常量   |
+|DATA.mod_init_func |初始化函数，在main之前调用   |
+|DATA.mod_term_func |终止函数，在main返回之后调用   |
+|DATA.bss |没有初始化的（静态/全局）变量   |
+|DATA.common |没有初始化过的符号声明   |
+|TEXT.ustring  |utf-8编码后的中文字符串  |
+|TEXT.objc_methname  |OC方法名（不含c方法，所有的方法都在TEXT.text中）  |
+|DATA.cfstring  |用OC方法创建的字符串，对TEXT段中字符串的引用  |
+|DATA.__objc _classlist节 |这个节列出了所有的class（metaclass自身也是一种class）。  |
+|DATA.__objc _catlist  |代表的就是程序里面有哪些Category  |
+|DATA.__objc_protolist  |代表的就是程序里面有哪些Protocol  |
+|DATA.__objc_classrefs  |该节是为了标记这个类究竟有没有被引用  |
+|DATA.__objc_selrefs  |告诉你究竟有哪些SEL对应的字符串被引用了  |
+|DATA.__objc_superrefs  |在编译期指定方法对应的current_class，以方便后续的superclass方法列表查找  |
+|DATA.__objc_const  |存放的是一些需要在类加载过程中用到的readonly data  |
+
+
+在补充：
+
+.bss不占据实际的磁盘空间，只在段表中记录大小，在符号表（symbols tabel）中记录符号。当文件加载运行时，才分配空间以及初始化。
+
+-----------------------------------------
+
+#### 不使用 IDE 的 Hello World
+
+回到终端 (Terminal)，创建一个包含一个 C 文件的文件夹：
+
+```objective_c
+% mkdir ~/Desktop/objcio-command-line
+% cd !$
+% touch helloworld.c
+```
+接着使用你喜欢的文本编辑器来编辑这个文件 -- 例如 TextEdit.app：
+
+```objective_c
+% open -e helloworld.c
+```
+输入如下代码：
+
+```objective_c
+#include <stdio.h>
+int main(int argc, char *argv[])
+{
+    printf("Hello World!\n");
+    return 0;
+}
+```
+保存并返回到终端，然后运行如下命令：
+
+```objective_c
+% xcrun clang helloworld.c
+% ./a.out
+```
+现在你能够在终端上看到熟悉的 Hello World!。这里我们编译并运行 C 程序，全程没有使用 IDE。深呼吸一下，高兴高兴。
+
+上面我们到底做了些什么呢？我们将 helloworld.c 编译为一个名为 a.out 的 Mach-O 二进制文件。注意，如果我们没有指定名字，那么编译器会默认的将其指定为 a.out。
+
+这个二进制文件是如何生成的呢？实际上有许多内容需要观察和理解。我们先看看编译器吧。
+
+#### Hello World 和编译器
+
+时下 Xcode 中编译器默认选择使用 clang(读作 /klæŋ/)。关于编译器，Chris 写了更详细的文章。
+
+简单的说，编译器处理过程中，将 helloworld.c 当做输入文件，并生成一个可执行文件 a.out。这个过程有多个步骤/阶段。我们需要做的就是正确的执行它们。
+
+**预处理**
+
+- 符号化 (Tokenization)
+- 宏定义的展开
+- #include 的展开
+
+**语法和语义分析**
+
+- 将符号化后的内容转化为一棵解析树 (parse tree)
+- 解析树做语义分析
+- 输出一棵抽象语法树（Abstract Syntax Tree* (AST)）
+
+**生成代码和优化**
+
+- 将 AST 转换为更低级的中间码 (LLVM IR)
+- 对生成的中间码做优化
+- 生成特定目标代码
+- 输出汇编代码
+
+**汇编器**
+
+- 将汇编代码转换为目标对象文件。
+
+**链接器**
+
+- 将多个目标对象文件合并为一个可执行文件 (或者一个动态库)
+
+用终端命令行查看section段
+
+% xcrun size -x -l -m a.out
+
+结果如下：
+
+```objective_c
+Segment __PAGEZERO: 0x100000000 (vmaddr 0x0 fileoff 0)
+Segment __TEXT: 0x1000 (vmaddr 0x100000000 fileoff 0)
+    Section __text: 0x37 (addr 0x100000f30 offset 3888)
+    Section __stubs: 0x6 (addr 0x100000f68 offset 3944)
+    Section __stub_helper: 0x1a (addr 0x100000f70 offset 3952)
+    Section __cstring: 0xe (addr 0x100000f8a offset 3978)
+    Section __unwind_info: 0x48 (addr 0x100000f98 offset 3992)
+    Section __eh_frame: 0x18 (addr 0x100000fe0 offset 4064)
+    total 0xc5
+Segment __DATA: 0x1000 (vmaddr 0x100001000 fileoff 4096)
+    Section __nl_symbol_ptr: 0x10 (addr 0x100001000 offset 4096)
+    Section __la_symbol_ptr: 0x8 (addr 0x100001010 offset 4112)
+    total 0x18
+Segment __LINKEDIT: 0x1000 (vmaddr 0x100002000 fileoff 8192)
+total 0x100003000
+```
+
+如上代码所示，我们的 `a.out` 文件有 4 个 `segment`。有些 `segment` 中有多个 `section`。
+
+当运行一个可执行文件时，虚拟内存 (`VM - virtual memory`) 系统将 `segment` 映射到进程的地址空间上。映射完全不同于我们一般的认识，如果你对虚拟内存系统不熟悉，可以简单的想象虚拟内存系统将整个可执行文件加载进内存 -- 虽然在实际上不是这样的。VM 使用了一些技巧来避免全部加载。
+
+当虚拟内存系统进行映射时，`segment `和 `section` 会以不同的参数和权限被映射。
+
+上面的代码中，`__TEXT segment` 包含了被执行的代码。它被以只读和可执行的方式映射。进程被允许执行这些代码，但是不能修改。这些代码也不能对自己做出修改，因此这些被映射的页从来不会被改变。
+
+`__DATA segment` 以可读写和不可执行的方式映射。它包含了将会被更改的数据。
+
+第一个 `segment` 是 `__PAGEZERO`。它的大小为 4GB。这 4GB 并不是文件的真实大小，但是规定了进程地址空间的前 4GB 被映射为 不可执行、不可写和不可读。这就是为什么当读写一个 `NULL` 指针或更小的值时会得到一个 `EXC_BAD_ACCESS` 错误。这是操作系统在尝试防止引起系统崩溃。
+
+在 `segment`中，一般都会有多个 `section`。它们包含了可执行文件的不同部分。在 `__TEXT segment `中，`__text section` 包含了编译所得到的机器码。`__stubs` 和 `__stub_helper` 是给动态链接器 (`dyld`) 使用的。通过这两个 `section`，在动态链接代码中，可以允许延迟链接。`__const` (在我们的代码中没有) 是常量，不可变的，就像 `__cstring` (包含了可执行文件中的字符串常量 -- 在源码中被双引号包含的字符串) 常量一样。
+
+`__DATA segment` 中包含了可读写数据。在我们的程序中只有 `__nl_symbol_ptr` 和 `__la_symbol_ptr`，它们分别是 `non-lazy` 和 `lazy` 符号指针。延迟符号指针用于可执行文件中调用未定义的函数，例如不包含在可执行文件中的函数，它们将会延迟加载。而针对非延迟符号指针，当可执行文件被加载同时，也会被加载。
+
+在 `__DATA segment` 中的其它常见 section 包括 `__const`，在这里面会包含一些需要重定向的常量数据。例如 `char * const p = "foo"`; -- p 指针指向的数据是可变的。`__bss section` 没有被初始化的静态变量，例如 `static int a`; -- `ANSI C` 标准规定静态变量必须设置为 0。并且在运行时静态变量的值是可以修改的。`__common section` 包含未初始化的外部全局变量，跟 `static `变量类似。例如在函数外面定义的 `int a`;。最后，`__dyld` 是一个 `section` 占位符，被用于动态链接器。
+`Section` 中的内容
+
+```objective_c
+% xcrun otool -s __TEXT __text a.out
+a.out:
+(__TEXT,__text) section
+0000000100000f30 55 48 89 e5 48 83 ec 20 48 8d 05 4b 00 00 00 c7
+0000000100000f40 45 fc 00 00 00 00 89 7d f8 48 89 75 f0 48 89 c7
+0000000100000f50 b0 00 e8 11 00 00 00 b9 00 00 00 00 89 45 ec 89
+0000000100000f60 c8 48 83 c4 20 5d c3
+```
+
+上面是我们 app 中的代码。由于 `-s __TEXT __text` 很常见，`otool` 对其设置了一个缩写 -t 。我们还可以通过添加 -v 来查看反汇编代码：    
+
+```objective_c
+% xcrun otool -v -t a.out
+a.out:
+(__TEXT,__text) section
+_main:
+0000000100000f30    pushq   %rbp
+0000000100000f31    movq    %rsp, %rbp
+0000000100000f34    subq    $0x20, %rsp
+0000000100000f38    leaq    0x4b(%rip), %rax
+0000000100000f3f    movl    $0x0, 0xfffffffffffffffc(%rbp)
+0000000100000f46    movl    %edi, 0xfffffffffffffff8(%rbp)
+0000000100000f49    movq    %rsi, 0xfffffffffffffff0(%rbp)
+0000000100000f4d    movq    %rax, %rdi
+0000000100000f50    movb    $0x0, %al
+0000000100000f52    callq   0x100000f68
+0000000100000f57    movl    $0x0, %ecx
+0000000100000f5c    movl    %eax, 0xffffffffffffffec(%rbp)
+0000000100000f5f    movl    %ecx, %eax
+0000000100000f61    addq    $0x20, %rsp
+0000000100000f65    popq    %rbp
+0000000100000f66    ret
+```
+
+上面的内容是一样的，只不过以反汇编形式显示出来。你应该感觉很熟悉，这就是我们在前面编译时候的代码。唯一的不同就是，在这里我们没有任何的汇编指令在里面。这是纯粹的二进制执行文件。
+
+同样的方法，我们可以查看别的 `section`：
+
+```objective_c
+% xcrun otool -v -s __TEXT __cstring a.out
+a.out:
+Contents of (__TEXT,__cstring) section
+
+0x0000000100000f8a  Hello World!\n
+```
+或:
+
+```objective_c
+% xcrun otool -v -s __TEXT __eh_frame a.out
+a.out:
+Contents of (__TEXT,__eh_frame) section
+0000000100000fe0    14 00 00 00 00 00 00 00 01 7a 52 00 01 78 10 01
+0000000100000ff0    10 0c 07 08 90 01 00 00
+```
+性能上需要注意的事项
+
+从侧面来讲，`__DATA` 和 `__TEXT segment`对性能会有所影响。如果你有一个很大的二进制文件，你可能得去看看苹果的文档：关于代码大小性能指南。将数据移至 `__TEXT `是个不错的选择，因为这些页从来不会被改变。
+
+[参考：译文 objc.io 第6期 Mach-O 可执行文件]()
+
+
+
+一个简单的demo代码：
+
+```objective_c
+#include <mach-o/dyld.h>
+#include <mach/mach.h>
+static uintptr_t imageLoadAddrStart = 0;        //app可执行文件的加载起始地址
+static uintptr_t imageLoadAddrEnd = 0;          //app可执行文件的加载结束地址
+
+void resetImageLoadAddress(void) {
+	NSString *executableName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleExecutable"];//可执行文件名
+
+	for(int i = 0; i < _dyld_image_count(); i++) {
+		const struct mach_header* header = _dyld_get_image_header(i);
+		const char *name = _dyld_get_image_name(i);
+		if(name == NULL) {
+			continue;
+		}
+
+		NSString *imageName = [[NSString stringWithUTF8String:name] lastPathComponent];
+		if(imageName == nil || [imageName isEqualToString:executableName] == NO) {
+			continue;
+		}
+
+		uintptr_t cmdPtr = 0;
+		if(header->magic == MH_MAGIC || header->magic == MH_CIGAM) {
+			cmdPtr = (uintptr_t)(header + 1);
+		}else if(header->magic == MH_MAGIC_64 || header->magic == MH_CIGAM_64) {
+			cmdPtr = (uintptr_t)(((struct mach_header_64 *)header) + 1);
+		}else {
+			continue;
+		}
+		//实际是从_TEXT段开始的，而不是SEG_PAGEZERO（待验证）
+		for(uint32_t iCmd = 0; iCmd < header->ncmds; iCmd++) {
+			struct load_command* loadCmd = (struct load_command*)cmdPtr;
+			cmdPtr += loadCmd->cmdsize;
+			if(loadCmd->cmd == LC_SEGMENT) {
+				struct segment_command *segPtr = (struct segment_command *)cmdPtr;
+				if(strcmp(segPtr->segname, SEG_TEXT) == 0) {
+					imageLoadAddrStart = (uintptr_t)(segPtr->vmaddr);
+					imageLoadAddrEnd = (uintptr_t)(segPtr->vmaddr + segPtr->vmsize);
+				}else if(strcmp(segPtr->segname, SEG_PAGEZERO) == 0){
+
+				}else if(strcmp(segPtr->segname, SEG_DATA) == 0){
+					imageLoadAddrEnd += (uintptr_t)(segPtr->vmsize);
+				}
+				NSLog(@"%d、 %s vmaddr:0x%08x vmsize:0x%08x", iCmd, segPtr->segname, segPtr->vmaddr, segPtr->vmsize);
+			}else if(loadCmd->cmd == LC_SEGMENT_64) {
+				struct segment_command_64 *segPtr = (struct segment_command_64 *)cmdPtr;
+				if(strcmp(segPtr->segname, SEG_TEXT) == 0) {
+					imageLoadAddrStart = (uintptr_t)(segPtr->vmaddr);
+					imageLoadAddrEnd = (uintptr_t)(segPtr->vmaddr + segPtr->vmsize);
+				}else if(strcmp(segPtr->segname, SEG_PAGEZERO) == 0){
+
+				}else if(strcmp(segPtr->segname, SEG_DATA) == 0){
+					imageLoadAddrEnd += (uintptr_t)(segPtr->vmsize);
+				}
+				NSLog(@"%d、 %s vmaddr:0x%llx vmsize:0x%llx", iCmd, segPtr->segname, segPtr->vmaddr, segPtr->vmsize);
+			}
+		}
+		imageLoadAddrEnd = (uintptr_t)header + (imageLoadAddrEnd - imageLoadAddrStart);
+		imageLoadAddrStart = (uintptr_t)header;
+		NSLog(@"%@ load addr: 0x%lx ~0x%lx", executableName, (uintptr_t)imageLoadAddrStart, (uintptr_t)imageLoadAddrEnd);
+		break;
+	}
+
+	assert(imageLoadAddrStart && imageLoadAddrEnd);
+}
+
+```
