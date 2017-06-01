@@ -81,7 +81,7 @@ Fat 格式的文件（既包含有32位的二进制文件，又包含有64位的
 
 `Load Commands` 是跟在 `Header` 后面的加载命令区，所有 `commands` 的大小总和即为 `Header->sizeofcmds` 字段，共有 `Header->ncmds` 条加载命令。
 
-```
+```objective_c
 struct load_command {
     uint32_t cmd;        /* type of load command */
     uint32_t cmdsize;    /* total size of command in bytes */
@@ -95,16 +95,16 @@ struct load_command {
 | Cmd       | 作用           |
 | ------------- |:-------------:|
 |LC_SEGMENT/LC_SEGMENT_64	|将对应的段中的数据加载并映射到进程的内存空间去|
-|LC_SYMTAB	|符号表信息
-|LC_DYSYMTAB	|动态符号表信息
-|LC_LOAD_DYLINKER	|启动动态加载连接器/usr/lib/dyld程序
-|LC_UUID	|唯一的 UUID，标示该二进制文件，128bit
-|LC_VERSION_MIN_IPHONEOS/MACOSX	|要求的最低系统版本（Xcode中的Deployment Target）
-|LC_MAIN	|设置程序主线程的入口地址和栈大小
-|LC_ENCRYPTION_INFO	|加密信息
-|LC_LOAD_DYLIB	|加载的动态库，包括动态库地址、名称、版本号等
-|LC_FUNCTION_STARTS	|函数地址起始表
-|LC_CODE_SIGNATURE	|代码签名信息
+|LC_SYMTAB	|符号表信息|
+|LC_DYSYMTAB	|动态符号表信息|
+|LC_LOAD_DYLINKER	|启动动态加载连接器/usr/lib/dyld程序|
+|LC_UUID	|唯一的 UUID，标示该二进制文件，128bit|
+|LC_VERSION_MIN_IPHONEOS/MACOSX	|要求的最低系统版本（Xcode中的Deployment Target）|
+|LC_MAIN	|设置程序主线程的入口地址和栈大小|
+|LC_ENCRYPTION_INFO	|加密信息|
+|LC_LOAD_DYLIB	|加载的动态库，包括动态库地址、名称、版本号等|
+|LC_FUNCTION_STARTS	|函数地址起始表|
+|LC_CODE_SIGNATURE	|代码签名信息|
 
 使用命令 `otool -l` 可执行文件 可以查看加载命令区，使用 `otool -l` 可执行文件 | `grep cryptid` 可以查看是否加密。
 
@@ -171,14 +171,13 @@ struct segment_command_64 { /* for 64-bit architectures */
 	uint32_t	flags;		/* flags */
 };
 ```
-
 其中 `nsects` 字段就是表明该段中有多少个 `section`。文件映射的起始位置是由 `fileoff` 给出，映射到地址空间的 `vmaddr` 处。
 
 #### Section
 
 `Section` 是具体有用的数据存放的地方。它的结构体跟随在 `LC_SEGMENT` 结构体之后，`LC_SEGMENT` 又在 `Load Commands` 中，但是 `segment` 的数据内容是跟在 `Load Commands` 之后的。它的结构体为：
 
-```
+```objective_c
 struct section { /* for 32-bit architectures */
 	char		sectname[16];	/* name of this section */
 	char		segname[16];	/* segment this section goes in */
@@ -207,12 +206,11 @@ struct section_64 { /* for 64-bit architectures */
 	uint32_t	reserved3;	/* reserved */
 };
 ```
-
 其中 `flag` 字段分为两个部分，一个是区域类型（`section type`），一个是区域属性（`section attributes`）。其中 `type` 是互斥的，即只能有一个类型，而 `attributes` 不是互斥的，可以有多个属性。如果段（segment）中的任何一个 `section` 拥有属性 `S_ATTR_DEBUG`，那么该段所有的 `section` 都必须拥有这个属性。具体的flag字段内容以及意义请参考 `/usr/include/mach-o/loader.h`。
 
 段名为大写，节名为小写。各节的作用主要有：
 
-```
+```objective_c
 __text:　主程序代码
 __stub_helper:　用于动态链接的存根
 __symbolstub1:　用于动态链接的存根
@@ -245,8 +243,7 @@ __bss:　未初始化的静态变量
 | __DATA.__data	|初始化的可变的变量|
 | __DATA.__bss	|未初始化的静态变量|
 
-
-具体的补充：
+**具体的补充：**
 
 | Section       | 作用           |
 | ------------- |:-------------:|
@@ -276,8 +273,7 @@ __bss:　未初始化的静态变量
 |DATA.__objc_superrefs  |在编译期指定方法对应的current_class，以方便后续的superclass方法列表查找  |
 |DATA.__objc_const  |存放的是一些需要在类加载过程中用到的readonly data  |
 
-
-在补充：
+**在补充：**
 
 .bss不占据实际的磁盘空间，只在段表中记录大小，在符号表（symbols tabel）中记录符号。当文件加载运行时，才分配空间以及初始化。
 
@@ -354,8 +350,9 @@ int main(int argc, char *argv[])
 
 用终端命令行查看section段
 
+```objective_c
 % xcrun size -x -l -m a.out
-
+```
 结果如下：
 
 ```objective_c
@@ -404,7 +401,6 @@ a.out:
 0000000100000f50 b0 00 e8 11 00 00 00 b9 00 00 00 00 89 45 ec 89
 0000000100000f60 c8 48 83 c4 20 5d c3
 ```
-
 上面是我们 app 中的代码。由于 `-s __TEXT __text` 很常见，`otool` 对其设置了一个缩写 -t 。我们还可以通过添加 -v 来查看反汇编代码：    
 
 ```objective_c
@@ -429,7 +425,6 @@ _main:
 0000000100000f65    popq    %rbp
 0000000100000f66    ret
 ```
-
 上面的内容是一样的，只不过以反汇编形式显示出来。你应该感觉很熟悉，这就是我们在前面编译时候的代码。唯一的不同就是，在这里我们没有任何的汇编指令在里面。这是纯粹的二进制执行文件。
 
 同样的方法，我们可以查看别的 `section`：
@@ -456,9 +451,7 @@ Contents of (__TEXT,__eh_frame) section
 
 [参考：译文 objc.io 第6期 Mach-O 可执行文件]()
 
-
-
-一个简单的demo代码：
+#### demo代码
 
 ```objective_c
 #include <mach-o/dyld.h>
