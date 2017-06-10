@@ -31,11 +31,11 @@ dispatch_async(queue, ^{
     [tmp class];
 });
 ```
-但是这种方案每次都要手动去加入block，麻烦，而且侵入性强，可读性不高；
+但是这种方案每次都要手动去加入`block`，麻烦，而且侵入性强，可读性不高；
 
 #### 方案二
 
-通过使用fishhook去hook释放对象的free方法，新建一个子线程，直接将free方法丢到子线程去释放，不消耗主线程资源。
+通过使用`fishhook`去`hook`释放对象的`free`方法，新建一个子线程，直接将`free`方法丢到子线程去释放，不消耗主线程资源。
 
 ```objective_c
 static void YHHook_Free(void* p){

@@ -17,7 +17,7 @@ tags:
 
 ### 使用@synchronized加锁的坑
 
-首先让我们来复习一下@synchronized的内部实现
+首先让我们来复习一下`@synchronized`的内部实现
 
 首先一个简单的测试代码
 
@@ -32,7 +32,7 @@ tags:
 
 <img src="https://Elliotsomething.GitHub.io/images/error_of_using_synchronized1.png">
 
-可以看到synchronized会对加锁的对象进行retain，但是这个不是重点，关键看objc_sync_enter和objc_sync_exit这两个函数，去源码里面找找：
+可以看到`synchronized`会对加锁的对象进行`retain`，但是这个不是重点，关键看`objc_sync_enter`和`objc_sync_exit`这两个函数，去源码里面找找：
 
 ```objective_c
 // Begin synchronizing on 'obj'.
@@ -79,9 +79,9 @@ int objc_sync_exit(id obj)
 ```
 可以看出:
 
-1、synchronized是使用的递归mutex来做同步。@synchronized(nil)不起任何作用（这样就避免了多次嵌套@synchronized导致死锁）
+1、`synchronized`是使用的递归mutex来做同步。`@synchronized(nil)`不起任何作用（这样就避免了多次嵌套@synchronized导致死锁）
 
-2、只对同一对象加锁，如果对象不同，则不起作用，这样就会有个问题，如果我在@synchronized里面对该对象重新赋值了，其他线程还是会进来，不会起到同步阻塞作用；
+2、只对同一对象加锁，如果对象不同，则不起作用，这样就会有个问题，如果我在`@synchronized`里面对该对象重新赋值了，其他线程还是会进来，不会起到同步阻塞作用；
 
 ok，看到这里基本可以知道我要说的问题了，就不继续深入了；
 
@@ -118,13 +118,13 @@ ok，看到这里基本可以知道我要说的问题了，就不继续深入了
 	}
 }
 ```
-我这样加锁之后，发现并没有什么用，还是会出现野指针Crash，只能慢慢调试了，下断点在@synchronized中，发现有很多线程还是进来了，如下图：
+我这样加锁之后，发现并没有什么用，还是会出现野指针Crash，只能慢慢调试了，下断点在`@synchronized`中，发现有很多线程还是进来了，如下图：
 <img src="https://Elliotsomething.GitHub.io/images/error_of_using_synchronized2.png">
 <img src="https://Elliotsomething.GitHub.io/images/error_of_using_synchronized3.png">
 
-回到我们开头所讲，发现原来如此，因为@synchronized只会锁住同一对象，而@synchronized内部改变之前标记的对象，所以就相当于没有加锁一样其他线程都可以进去了，这样就达不到阻塞同步代码的作用，还是和上面没加锁的代码一样会引起野指针Crash；
+回到我们开头所讲，发现原来如此，因为`@synchronized`只会锁住同一对象，而`@synchronized`内部改变之前标记的对象，所以就相当于没有加锁一样其他线程都可以进去了，这样就达不到阻塞同步代码的作用，还是和上面没加锁的代码一样会引起野指针Crash；
 
-找到原因之后就好修改了，直接使用NSLock就行，代码如下：
+找到原因之后就好修改了，直接使用`NSLock`就行，代码如下：
 ```objective_c
 - (void) testddd{
 	if (selectorAndClassArray.count==0) {
@@ -136,5 +136,5 @@ ok，看到这里基本可以知道我要说的问题了，就不继续深入了
 }
 ```
 
-总结：需要慎用@synchronized，在加锁的场景下要考虑清楚该用什么锁；
+总结：需要慎用`@synchronized`，在加锁的场景下要考虑清楚该用什么锁；
 本文完；
