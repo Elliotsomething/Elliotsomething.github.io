@@ -30,6 +30,7 @@ tags:
 ```
 然后看下汇编实现：
 
+<img src="https://Elliotsomething.GitHub.io/images/LLDB-And-Assembly-Debugging1.png">
 <img src="https://Elliotsomething.GitHub.io/images/error_of_using_synchronized1.png">
 
 可以看到synchronized会对加锁的对象进行retain，但是这个不是重点，关键看objc_sync_enter和objc_sync_exit这两个函数，去源码里面找找：
