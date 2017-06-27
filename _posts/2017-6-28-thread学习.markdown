@@ -267,7 +267,7 @@ static mach_port_t main_thread_id;
 }
 ```
 
-####附录：
+#### 附录
 各平台寄存器以及thread的state的区别，直接用宏定义区别开来；
 
 ```objective_c
