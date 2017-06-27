@@ -74,11 +74,9 @@ kern_return_t thread_info
 那么我们先来学习下函数调用栈（汇编厉害的可以直接跳过）；
 
 #### 汇编学习之函数调用栈
-
  程序的执行过程可看作连续的函数调用。当一个函数执行完毕时，程序要回到调用指令的下一条指令(紧接call指令)处继续执行。函数调用过程通常使用堆栈实现，每个用户态进程对应一个调用栈结构(call stack)。编译器使用堆栈传递函数参数、保存返回地址、临时保存寄存器原有值(即函数调用的上下文)以备恢复以及存储本地局部变量。
 
  不同处理器和编译器的堆栈布局、函数调用方法都可能不同，但堆栈的基本概念是一样的。
-
 **理解EIP、ESP、EBP**
 
 在x86处理器中，`EIP(Instruction Pointer)`是指令寄存器，指向处理器下条等待执行的指令地址(代码段内的偏移量)，每次执行完相应汇编指令EIP值就会增加。`ESP(Stack Pointer)`是堆栈指针寄存器，存放执行函数对应栈帧的栈顶地址(也是系统栈的顶部)，且始终指向栈顶；`EBP(Base Pointer`)是栈帧基址指针寄存器，存放执行函数对应栈帧的栈底地址，用于C运行库访问栈中的局部变量和参数。
@@ -86,7 +84,6 @@ kern_return_t thread_info
   注意，EIP是个特殊寄存器，不能像访问通用寄存器那样访问它，即找不到可用来寻址EIP并对其进行读写的操作码(OpCode)。EIP可被jmp、call和ret等指令隐含地改变(事实上它一直都在改变)。
 
   不同架构的CPU，寄存器名称被添加不同前缀以指示寄存器的大小。例如x86架构用字母“e(extended)”作名称前缀，指示寄存器大小为32位；x86_64架构用字母“r”作名称前缀，指示各寄存器大小为64位。
-
 **栈帧指针寄存器**
 
 为了访问函数局部变量，必须能定位每个变量。局部变量相对于堆栈指针ESP的位置在进入函数时就已确定，理论上变量可用ESP加偏移量来引用，但ESP会在函数执行期随变量的压栈和出栈而变动。尽管某些情况下编译器能跟踪栈中的变量操作以修正偏移量，但要引入可观的管理开销。而且在有些机器上(如Intel处理器)，用ESP加偏移量来访问一个变量需要多条指令才能实现。
@@ -94,13 +91,11 @@ kern_return_t thread_info
 因此，许多编译器使用帧指针寄存器FP(Frame Pointer)记录栈帧基地址。局部变量和函数参数都可通过帧指针引用，因为它们到FP的距离不会受到压栈和出栈操作的影响。有些资料将帧指针称作局部基指针(LB-local base pointer)。
 
 在Intel CPU中，寄存器BP(EBP)用作帧指针。在Motorola CPU中，除A7(堆栈指针SP)外的任何地址寄存器都可用作FP。当堆栈向下(低地址)增长时，以FP地址为基准，函数参数的偏移量是正值，而局部变量的偏移量是负值。
-
 **函数调用回溯约定**
 
  程序寄存器组是唯一能被所有函数共享的资源。虽然某一时刻只有一个函数在执行，但需保证当某个函数调用其他函数时，被调函数不会修改或覆盖主调函数稍后会使用到的寄存器值。因此，IA32采用一套统一的寄存器使用约定，所有函数(包括库函数)调用都必须遵守该约定。
 
   根据惯例，寄存器%eax、%edx和%ecx为主调函数保存寄存器(caller-saved registers)，当函数调用时，若主调函数希望保持这些寄存器的值，则必须在调用前显式地将其保存在栈中；被调函数可以覆盖这些寄存器，而不会破坏主调函数所需的数据。寄存器%ebx、%esi和%edi为被调函数保存寄存器(callee-saved registers)，即被调函数在覆盖这些寄存器的值时，必须先将寄存器原值压入栈中保存起来，并在函数返回前从栈中恢复其原值，因为主调函数可能也在使用这些寄存器。此外，被调函数必须保持寄存器%ebp和%esp，并在函数返回后将其恢复到调用前的值，亦即必须恢复主调函数的栈帧。
-
 **栈帧结构**
 
 函数调用经常是嵌套的，在同一时刻，堆栈中会有多个函数的信息。每个未完成运行的函数占用一个独立的连续区域，称作栈帧(Stack Frame)。栈帧是堆栈的逻辑片段，当调用函数时逻辑栈帧被压入堆栈, 当函数返回时逻辑栈帧被从堆栈中弹出。栈帧存放着函数参数，局部变量及恢复前一栈帧所需要的数据等。
@@ -112,7 +107,7 @@ kern_return_t thread_info
   为更具描述性，以下称EBP为帧基指针， ESP为栈顶指针，并在引用汇编代码时分别记为%ebp和%esp。
 
   函数调用栈的典型内存布局如下图所示：
-  <img src="https://Elliotsomething.GitHub.io/images/thread_study_03.png">
+  <img src="https://Elliotsomething.GitHub.io/images/thread_study_03.jpg">
 
  图中给出主调函数(caller)和被调函数(callee)的栈帧布局，"m(%ebp)"表示以EBP为基地址、偏移量为m字节的内存空间(中的内容)。该图基于两个假设：第一，函数返回值不是结构体或联合体，否则第一个参数将位于"12(%ebp)" 处；第二，每个参数都是4字节大小(栈的粒度为4字节)。在本文后续章节将就参数的传递和大小问题做进一步的探讨。  此外，函数可以没有参数和局部变量，故图中“Argument(参数)”和“Local Variable(局部变量)”不是函数栈帧结构的必需部分。
 
@@ -126,6 +121,7 @@ kern_return_t thread_info
 
 以上内容出自[C语言函数调用栈(一)](http://www.cnblogs.com/clover-toeic/p/3755401.html)，总结上面的内容就是Stack Pointer(ESP栈指针)表示当前栈的顶部，Frame Pointer （EBP栈基指针）指向的地址中，存储了上一次 Stack Pointer 的值，也就是返回地址，其中EIP是每个函数的入口；了解了这些之后，通过函数调用栈递归，可以知道该线程的函数栈的所有函数调用；
 
+#### 获取thread的状态信息
 获取所有函数调用地址可以通过该方法获得，该方法可以访问目标内存空间；
 
 ```objective_c
@@ -271,7 +267,8 @@ static mach_port_t main_thread_id;
 }
 ```
 
-附录：各平台寄存器以及thread的state的区别，直接用宏定义区别开来；
+####附录：
+各平台寄存器以及thread的state的区别，直接用宏定义区别开来；
 
 ```objective_c
 #if defined(__arm64__)
@@ -383,13 +380,12 @@ bool ksdl_dladdr(const uintptr_t address, Dl_info* const info) {
 }
 ```
 
-
-参考：
-[C语言函数调用栈(一)](http://www.cnblogs.com/clover-toeic/p/3755401.html)
-[获取任意线程调用栈的那些事](http://blog.csdn.net/abc649395594/article/details/52350426)
-[iOS中线程Call Stack的捕获和解析（二）](http://blog.csdn.net/jasonblog/article/details/49909209)
-[iOS 符号表恢复 & 逆向支付宝](https://juejin.im/entry/58478862ac502e006b0dfcb5)
-[nlist-Mach-O文件重定向信息数据结构分析](http://turingh.github.io/2016/05/24/nlist-Mach-O%E6%96%87%E4%BB%B6%E9%87%8D%E5%AE%9A%E5%90%91%E4%BF%A1%E6%81%AF%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/)
-[趣探 Mach-O：符号解析](http://ios.jobbole.com/89026/)
-[vm_read](http://web.mit.edu/darwin/src/modules/xnu/osfmk/man/vm_read.html)
-[Apple Open Source](https://opensource.apple.com/source/xnu/xnu-201/osfmk/vm/vm_user.c)
+#### 参考：
+- [C语言函数调用栈(一)](http://www.cnblogs.com/clover-toeic/p/3755401.html)
+- [获取任意线程调用栈的那些事](http://blog.csdn.net/abc649395594/article/details/52350426)
+- [iOS中线程Call Stack的捕获和解析（二）](http://blog.csdn.net/jasonblog/article/details/49909209)
+- [iOS 符号表恢复 & 逆向支付宝](https://juejin.im/entry/58478862ac502e006b0dfcb5)
+- [nlist-Mach-O文件重定向信息数据结构分析](http://turingh.github.io/2016/05/24/nlist-Mach-O%E6%96%87%E4%BB%B6%E9%87%8D%E5%AE%9A%E5%90%91%E4%BF%A1%E6%81%AF%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/)
+- [趣探 Mach-O：符号解析](http://ios.jobbole.com/89026/)
+- [vm_read](http://web.mit.edu/darwin/src/modules/xnu/osfmk/man/vm_read.html)
+- [Apple Open Source](https://opensource.apple.com/source/xnu/xnu-201/osfmk/vm/vm_user.c)
