@@ -19,7 +19,7 @@ tags:
 
 翻转二叉树，简单易懂
 
-```objectivec
+```objective_c
 def invertTree(root):
     if root is None:
         return None
@@ -86,7 +86,7 @@ def invertTree(root):
 
 **题：不用库函数，编写一个函数，求整数N的开方**
 
-```objective_c
+```objectivec
 #define  ABS(VAL)   ((VAL>0)?(VAL):(-VAL))
 double sqrt(float x)
 {
