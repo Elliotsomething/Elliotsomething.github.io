@@ -19,7 +19,7 @@ tags:
 
 翻转二叉树，简单易懂
 
-```Python
+```objectivec
 def invertTree(root):
     if root is None:
         return None
