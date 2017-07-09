@@ -1,0 +1,65 @@
+---
+layout:     post
+title:      "iOS 之 Block深入浅出"
+subtitle:   "Stack Of Thread Study Note"
+date:       2016-4-28
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - Block
+    - 堆栈
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载；如需转载，请保持原文链接。**
+
+### Block深入浅出
+
+#### 什么是bolck
+
+Block是OC对闭包实现的一个对象，为什么说Block是对象了，因为在Block的数据结构中存在isa指针
+
+ <img src="https://Elliotsomething.GitHub.io/images/Block_study_01.png">
+
+block分为三种：`NSConcreteGlobalBlock`、`NSConcreteStackBlock`、`NSConcreteMallocBlock`。
+
+第一种Block是全局Block，如果一个Block没有引入外部变量，那么这个Block就是全局Block，全局Block在编译时期就已经确定大小了，如同宏一样；
+
+第二种Block是栈Block，当引入了外部变量时，这种Block就是栈block了，`NSConcreteStackBlock`内部会有一个结构体`__main_block_impl_0`，这个结构体会保存外部变量，使其体积变大。而这就导致了`NSConcreteStackBlock`并不像宏一样，而是一个动态的对象。而它由于没有被持有，所以在它的内部，它也不会持有其外部引用的对象。（注意，栈Block是不会持有外部变量的）
+
+第三种Block是堆Block，堆Block就是一个Block被copy到堆上，堆Block会持有外部引用对象，所以会导致可能的对象延迟释放，或者循环引用的问题。（在MRC下，局部变量如果没有用_Block，在Block中会对其进行copy操作，而用了__block则只会引用其地址，这也就是为什么改变局部变量需要用__block修饰了）
+
+#### 在MRC和ARC下Block的区别
+
+将Block作为实例的属性变量时，MRC下需要手动copy到堆中，也就是栈Block–>堆Block（如果不copy就是栈Block，栈Block不会持有对象），而在ARC中属性赋值默认是strong，到了Block自然就变成了copy，所以在ARC下默认是堆Block。
+
+#### Block 的生命周期
+
+(特别注意：堆Block会持有对象，这样就导致，如果堆block不释放的话，其持有的对象也不会释放，这样就会导致循环引用或者延迟释放，所以一般的做法是`_weak(ARC)`或`_block(MRC)`
+
+宏：`#define weak(obj) __weak typeof(obj) weak##obj = obj`
+
+#### Block与函数的区别
+
+函数指针是对一个函数地址的引用，这个函数在编译的时候就已经确定了。而block是一个对象，是在程序运行过程中产生的。在函数中生成的block对象分配在栈(stack)上，跳出函数体，就会释放。Block是一个对象，所以可以作为函数参数或者函数的返回值（函数指针），而其本身又可以带输入参数或返回值，blocks是inline的，并且它对局部变量是只读的，如果要修改局部变量，必须加__block修饰。从代码上来讲，block的方法体写在调用之后，有利于代码的整合和阅读。创建一个Block，会在创建结构体的时候把函数的指针一起传给了block，所以之后可以拿出来调用。
+
+```objective_c
+typedef void (^Callback)(id result);
+- (void)viewDidLoad {
+  [self callbackDosomething:^(id result) {
+    NSLog(@"%@",result);
+  }];
+}
+- (void)callbackDosomething:(Callback)callback{
+  callback = [self callbackReDosomething:callback];
+}
+
+- (Callback)callbackReDosomething:(Callback)callback{
+  if (callback) {
+    callback(@"dosomething");
+  }
+  return callback;
+}
+//此处的callback就是用来传递的，在另一个方法里面才callback回调
+```
