@@ -35,19 +35,19 @@ tags:
 
 上面一大堆理论，看的有点晕；我们来看一个例子，这样更容易理解函数式编程，现在有一个数学表达式：
 
-```Python
+```python
 (1 + 2) * 3 - 4
 ```
 传统的过程式编程，可能这样写：
 
-```Python
+```python
 a = 1 + 2;
 b = a * 3;
 c = b - 4;
 ```
 函数式编程要求使用函数，我们可以把运算过程定义为不同的函数，然后写成下面这样：
 
-```Python
+```python
 result = subtract(multiply(add(1,2), 3), 4);
 ```
 
@@ -75,12 +75,12 @@ result = subtract(multiply(add(1,2), 3), 4);
 
 ```python
 function reverse(string) {
-　　　　if(string.length == 0) {
-　　　　　　return string;
-　　　　} else {
-　　　　　　return reverse(string.substring(1, string.length)) + string.substring(0, 1);
-　　　　}
+　　if(string.length == 0) {
+　　　　return string;
+　　} else {
+　　　　return reverse(string.substring(1, string.length)) + string.substring(0, 1);
 　　}
+}
 ```
 由于使用了递归，函数式语言的运行速度比较慢，这是它长期不能在业界推广的主要原因。
 
@@ -120,4 +120,10 @@ function reverse(string) {
 - 在实现早期的函数式编程语言时并没有考虑过效率问题。
 - 有些非函数式编程语言为求提升速度，不提供自动边界检查或自动垃圾回收等功能。
 
-回到开头，对于非函数式编程来说，函数式编程非常有借鉴意义，对于代码重构，模块解耦有非常大的帮助。本文仅用作本人学习之用，如有不当之处，还请指点；
+回到开头，对于非函数式编程来说，函数式编程非常有借鉴意义，对于代码重构，模块解耦有非常大的帮助。本文仅用作本人学习之用，学习函数式的一些概念，如有不当之处，还请指点；
+
+#### 参考
+
+[函数式编程初探](http://www.ruanyifeng.com/blog/2012/04/functional_programming.html)
+[维基百科](https://zh.wikipedia.org/zh-hans/%E5%87%BD%E6%95%B8%E7%A8%8B%E5%BC%8F%E8%AA%9E%E8%A8%80)
+[iOS与函数式编程](http://mrpeak.cn/blog/functional/)
