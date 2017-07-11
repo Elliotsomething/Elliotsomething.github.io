@@ -17,7 +17,7 @@ tags:
 
 ### 使用@synchronized加锁的坑
 
-首先让我们来复习一下`@synchronized`的内部实现
+首先让我们来复习一下`@synchronized`互斥锁的内部实现
 
 首先一个简单的测试代码
 

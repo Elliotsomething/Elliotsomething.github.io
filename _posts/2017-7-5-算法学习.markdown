@@ -53,7 +53,6 @@ class Solution:
         return head.next
 ```
 
-
 ### 2017-7-2 排序算法
 
 #### 冒泡排序
@@ -178,10 +177,79 @@ void ShellSort(int *arr, int N)
     }
 }
 ```
+#### 归并排序
+归并（Merge）排序法是将两个（或两个以上）有序表合并成一个新的有序表，即把待排序序列分为若干个子序列，每个子序列是有序的。然后再把有序子序列合并为整体有序序列。
+
+```objective_c
+void merge(int *a,int left,int mid,int right)
+{
+    int i, k;
+    int tmp[right];
+    //申请空间，使其大小为两个
+    int left_low = left;
+    int left_high = mid;
+    int right_low = mid + 1;
+    int right_high = right;
+    for(k=0; left_low<=left_high && right_low<=right_high; k++){
+        // 比较两个指针所指向的元素
+        if(a[left_low]<=a[right_low]){
+            tmp[k] = a[left_low++];
+        }else{
+            tmp[k] = a[right_low++];
+        }
+    }
+    if(left_low <= left_high){
+        //若第一个序列有剩余，直接复制出来粘到合并序列尾
+        for(i=left_low;i<=left_high;i++)
+            tmp[k++] = a[i];
+    }
+    if(right_low <= right_high){
+        //若第二个序列有剩余，直接复制出来粘到合并序列尾
+        for(i=right_low; i<=right_high; i++)
+            tmp[k++] = a[i];
+    }
+    for(i=0; i<right-left+1; i++)
+        a[left+i] = tmp[i];
+    return;
+
+}
+void mergeFunc(int *a,int left,int right)
+{
+    if (left<right) {
+        int mid = (left+right)/2;
+        mergeFunc(a, left, mid);
+        mergeFunc(a, mid+1, right);
+        merge(a,left,mid,right);
+    }
+}
+void mergeSort(int *a,int len)
+{
+    mergeFunc(a,0,len-1);
+}
+```
 
 ### 2017-7-1 翻转二叉树
 
-翻转二叉树，简单易懂
+翻转二叉树，C语言实现
+
+```objective_c
+void invertTree (node *root)
+{
+    if (root==NULL) {
+        return;
+    }
+    if (root->left) {
+        invertTree(root->left);
+    }
+    if (root->right) {
+        invertTree(root->right);
+    }
+    node *tree = root->left;
+    root->left = root->right;
+    root->right = tree;
+}
+```
+Python实现
 
 ```python
 def invertTree(root):
@@ -197,7 +265,7 @@ def invertTree(root):
 
 ### 2017-6-20 字符串替换空格
 
-**题：实现一个函数，把字符串中的空格替换成%20，例如：输入”We are happy.”，替换为”We%20are%20happy."**
+题：实现一个函数，把字符串中的空格替换成%20，例如：输入”We are happy.”，替换为”We%20are%20happy."
 
 #### 解法一
 **一、最差的解法**
@@ -250,7 +318,7 @@ def invertTree(root):
 
 ### 2017-5-22 牛顿迭代算法
 
-**题：不用库函数，编写一个函数，求整数N的开方**
+题：不用库函数，编写一个函数，求整数N的开方
 
 ```objective_c
 #define  ABS(VAL)   ((VAL>0)?(VAL):(-VAL))
