@@ -165,13 +165,13 @@ NSDictionary *options = @{ NSSQLitePragmasOption : @{@"journal_mode" : @"DELETE"
 
 #### 3、CoreData优化项
 
-（1）尽量设置fetchRequest的fetchBatchSize属性，否则默认为0，会在第一次加载时载入所有数据。一般经验是将fetchBatchSize的数量设置为屏幕显示数量的两倍。当滚动时会自动加载剩余的数据。
-（2）在写筛选条件（predicate）时要注意先后顺序，把限制更大的筛选条件放在优先位置会很好地提高筛选效率。比如，“(active == YES) AND (name CONTAINS[cd] %@)” 要优于 “(name CONTAINS[cd] %@) AND (active == YES)”
-（3）当仅需要获取查询数量的时候，使用countForFetchRequest直接查询数目，而非使用executeFetchRequest获取条目后，再拿条目的数量。
-（4）如果存在relationships，直接使用，避免重复查询。
-（5）通配符LIKE进行模糊搜索比直接搜索==慢。
-（6）查询字符串的速度要慢于查询,所以(salary > 100000) AND (lastName LIKE 'yang')要好于(lastName LIKE 'yang') AND (salary > 100000)
-（7）只fetch那些需要的数据。对于少量的数据，只需要使用Fetch Limits就行了，如果要使用大量数据，则通常要两个Fetch，第一个Fetch取出少量数据即刻为UI服务，另一个Fetch取出大量数据。
-（8）在不需要undo的工程，可以将undo manager设为nil
-（9）合理利用Coredata的惰性加载机制，把各个属性分离到不同的对象中，例如，人一个对象，照片一个对象，二者通过Relationship联系起来，就能够保证在需要照片的时候再惰性加载
-（10）多线程CoreData，防止阻塞主线程
+1. 尽量设置fetchRequest的fetchBatchSize属性，否则默认为0，会在第一次加载时载入所有数据。一般经验是将fetchBatchSize的数量设置为屏幕显示数量的两倍。当滚动时会自动加载剩余的数据。
+2. 在写筛选条件（predicate）时要注意先后顺序，把限制更大的筛选条件放在优先位置会很好地提高筛选效率。比如，“(active == YES) AND (name CONTAINS[cd] %@)” 要优于 “(name CONTAINS[cd] %@) AND (active == YES)”
+3. 当仅需要获取查询数量的时候，使用countForFetchRequest直接查询数目，而非使用executeFetchRequest获取条目后，再拿条目的数量。
+4. 如果存在relationships，直接使用，避免重复查询。
+5. 通配符LIKE进行模糊搜索比直接搜索==慢。
+6. 查询字符串的速度要慢于查询,所以(salary > 100000) AND (lastName LIKE 'yang')要好于(lastName LIKE 'yang') AND (salary > 100000)
+7. 只fetch那些需要的数据。对于少量的数据，只需要使用Fetch Limits就行了，如果要使用大量数据，则通常要两个Fetch，第一个Fetch取出少量数据即刻为UI服务，另一个Fetch取出大量数据。
+8. 在不需要undo的工程，可以将undo manager设为nil
+9. 合理利用Coredata的惰性加载机制，把各个属性分离到不同的对象中，例如，人一个对象，照片一个对象，二者通过Relationship联系起来，就能够保证在需要照片的时候再惰性加载
+10. 多线程CoreData，防止阻塞主线程
