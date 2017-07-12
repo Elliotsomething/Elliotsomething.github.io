@@ -1,0 +1,171 @@
+---
+layout:     post
+title:      "iOS 之 CoreData学习笔记"
+subtitle:   "CoreData Learning"
+date:       2015-12-20
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - iOS
+    - CoreData
+    - 多线程
+---
+
+**版权声明：本文为博主原创文章，未经博主允许不得转载**
+
+### CoreData学习笔记
+
+#### 0、概念
+
+1.数据最终的存储类型可以是：SQLite数据库，XML，二进制，内存里，或自定义数据类型
+
+在Mac OS X 10.5Leopard及以后的版本中，开发者也可以通过继承NSPersistentStore类以创建自定义的存储格式
+
+2.构成：
+
+(1)NSManagedObjectContext（被管理的数据上下文）
+
+操作实际内容（操作持久层）
+
+作用：插入数据，查询数据，删除数据
+
+(2)NSManagedObjectModel（被管理的数据模型）
+
+数据库所有表格或数据结构，包含各实体的定义信息
+
+作用：添加实体的属性，建立属性之间的关系
+
+操作方法：视图编辑器，或代码
+
+(3)NSPersistentStoreCoordinator（持久化存储助理）
+
+相当于数据库的连接器
+
+作用：设置数据存储的名字，位置，存储方式，和存储时机
+
+(4)NSManagedObject（被管理的数据记录）
+
+(5)NSFetchRequest（获取数据的请求）
+
+(6)NSEntityDescription（实体结构）
+
+(7)后缀为.xcdatamodeld的包
+
+里面是.xcdatamodel文件，用数据模型编辑器编辑
+
+编译后为.momd或.mom文件
+
+
+#### 1、创建Context
+
+如果想要对Coredata进行一系列的操作，就必须要先初始化NSManagedObjectContext，那么怎么得到Context呢？有两种方法：
+
+一种是通过UIManagedDocument获得：
+
+这种比较麻烦，代码如下
+
+```objective_c
+self.document = [[UIManagedDocument alloc] initWithFileURL:(URL *)url];
+if ([[NSFileManager defaultManager] fileExistsAtPath:[url path]]) {
+    [document openWithCompletionHandler:^(BOOL success) {
+        if (success) [self documentIsReady];
+        if (!success) NSLog(@“couldn’t open document at %@”, url);
+    }];
+} else {
+    [document saveToURL:url forSaveOperation:UIDocumentSaveForCreating
+      completionHandler:^(BOOL success) {
+          if (success) [self documentIsReady];
+          if (!success) NSLog(@“couldn’t create document at %@”, url);
+      }];
+}
+- (void)documentIsReady
+{
+    /*对应的状态有：
+   UIDocumentStateClosed (还没有打开或者创建)
+   UIDocumentStateSavingError (completion handler保存没有成功)
+   UIDocumentStateEditingDisabled (重试)
+   UIDocumentStateInConflict（例如有其他人在使用更新，有冲突到等）*/
+
+   if (self.document.documentState == UIDocumentStateNormal) {
+       //如果成功的话，我们就获得了我们需要的context了，然后操作core data
+       NSManagedObjectContext *context = self.document.managedObjectContext;
+   }
+}
+```
+
+第二种就是直接初始化了，代码如下
+
+```objective_c
+self.Context = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
+```
+这里的type有三种：
+
+（1）`NSConfinementConcurrencyType`
+
+官方文档的解释是：Specifies that the context will use the thread confinement pattern.
+
+指定context的线程约束类型，使用这种类型的context需要自己新建一个线程和他绑定在一起使用，所以最好在它绑定的线程中执行block，也就是说最好不要使用context自带的performBlock了，需要自己重写，不然很容易导致死锁（该类型在iOS9中被废弃，是为了兼容之前的设计）
+
+（2）`NSPrivateQueueConcurrencyType`
+
+官方文档的解释是：Specifies that the context will be associated with a private dispatch queue.
+
+指定context和一个全局私有的线程队列关联的类型，使用这种类型的context不需要自己新建线程，因为他已经和一个全局的私有线程队列关联了，所以当你执行performBlock时，他会将block放到其私有线程队列去执行。
+
+（3）`NSMainQueueConcurrencyType`
+
+官方文档的解释是：Specifies that the context will be associated with the main queue.
+
+指定context和主线程关联的类型，该performBlock会放到主线程中去执行
+
+2、数据迁移
+
+解决数据迁移的问题，将options这个选项添加到下面这个地方去，如果迁移失败，先备份旧的数据库，，则直接删除
+
+```objective_c
+NSDictionary *options = @{ NSSQLitePragmasOption : @{@"journal_mode" : @"DELETE"} ,
+                               NSMigratePersistentStoresAutomaticallyOption:@YES,
+                               NSInferMappingModelAutomaticallyOption:@YES};
+    if (![_persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:options error:&error]) {
+        NSLogToFile(@"Unresolved error %@, %@", error, [error userInfo]);
+        if(error.description && [error.description rangeOfString:@"database or disk is full"].location != NSNotFound) {
+            return nil;
+        }
+        //清除系统注册的本地通知
+        NSArray *notificationArray = [[UIApplication sharedApplication] scheduledLocalNotifications];
+        for (UILocalNotification *notification in notificationArray) {
+            [[UIApplication sharedApplication] cancelLocalNotification:notification];
+        }
+        // 数据库名字变更 - 不兼容的数据库进行备份 - "oldName_yyyyMMddHHmm_incompatible"
+        NSString *dataString = [NSString stringFromDate:nil andFormat:@"yyyyMMddHHmm"];
+        NSString *oldPath = [self.userConfig documentURL].path;
+        NSString *newPath = [NSString stringWithFormat:@"%@_%@_incompatible", oldPath, dataString];
+        //将临时文件名改回正式名
+        NSError *moveErr = nil;
+        [[NSFileManager defaultManager] moveItemAtPath:oldPath toPath:newPath error:&moveErr];
+        if (moveErr) {
+            // 移动失败就直接删除
+            [EntrysOperateHelper deleteFileWithAbsolutePath:[self.userConfig documentURL].path];
+            NSLogToFile(@"Error: move file %@ -> %@ failed:%@. delete!", oldPath, newPath, moveErr);
+        }else{
+            NSLogToFile(@"Info: move file %@ -> %@ success", oldPath, newPath);
+        }
+        NSLog(@"数据库不兼容");
+        //_persistentStoreCoordinator = self.persistentStoreCoordinator;
+        return nil;
+    }
+```
+
+#### 3、CoreData优化项
+
+（1）尽量设置fetchRequest的fetchBatchSize属性，否则默认为0，会在第一次加载时载入所有数据。一般经验是将fetchBatchSize的数量设置为屏幕显示数量的两倍。当滚动时会自动加载剩余的数据。
+（2）在写筛选条件（predicate）时要注意先后顺序，把限制更大的筛选条件放在优先位置会很好地提高筛选效率。比如，“(active == YES) AND (name CONTAINS[cd] %@)” 要优于 “(name CONTAINS[cd] %@) AND (active == YES)”
+（3）当仅需要获取查询数量的时候，使用countForFetchRequest直接查询数目，而非使用executeFetchRequest获取条目后，再拿条目的数量。
+（4）如果存在relationships，直接使用，避免重复查询。
+（5）通配符LIKE进行模糊搜索比直接搜索==慢。
+（6）查询字符串的速度要慢于查询,所以(salary > 100000) AND (lastName LIKE 'yang')要好于(lastName LIKE 'yang') AND (salary > 100000)
+（7）只fetch那些需要的数据。对于少量的数据，只需要使用Fetch Limits就行了，如果要使用大量数据，则通常要两个Fetch，第一个Fetch取出少量数据即刻为UI服务，另一个Fetch取出大量数据。
+（8）在不需要undo的工程，可以将undo manager设为nil
+（9）合理利用Coredata的惰性加载机制，把各个属性分离到不同的对象中，例如，人一个对象，照片一个对象，二者通过Relationship联系起来，就能够保证在需要照片的时候再惰性加载
+（10）多线程CoreData，防止阻塞主线程
