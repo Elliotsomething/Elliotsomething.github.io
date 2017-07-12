@@ -18,9 +18,15 @@ tags:
 
 #### 0、概念
 
-1.数据最终的存储类型可以是：SQLite数据库，XML，二进制，内存里，或自定义数据类型
+1.数据最终的存储类型可以是：SQLite数据库，XML，二进制，内存里；类型定义如下：
 
-在Mac OS X 10.5Leopard及以后的版本中，开发者也可以通过继承NSPersistentStore类以创建自定义的存储格式
+```objective_c
+// Persistent store types supported by Core Data:
+COREDATA_EXTERN NSString * const NSSQLiteStoreType API_AVAILABLE(macosx(10.4),ios(3.0));
+COREDATA_EXTERN NSString * const NSXMLStoreType API_AVAILABLE(macosx(10.4)) API_UNAVAILABLE(ios);
+COREDATA_EXTERN NSString * const NSBinaryStoreType API_AVAILABLE(macosx(10.4),ios(3.0));
+COREDATA_EXTERN NSString * const NSInMemoryStoreType API_AVAILABLE(macosx(10.4),ios(3.0));
+```
 
 2.构成：
 
