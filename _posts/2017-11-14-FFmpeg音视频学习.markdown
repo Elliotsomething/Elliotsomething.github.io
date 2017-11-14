@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "算法学习"
+title:      "iOS 音视频初步学习 - FFmpeg"
 subtitle:   "FFmpeg Learning"
 date:       2017-7-14
 author:     "Elliot"
