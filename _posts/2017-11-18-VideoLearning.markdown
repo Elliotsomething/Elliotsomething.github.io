@@ -2,7 +2,7 @@
 layout:     post
 title:      "视频初步学习"
 subtitle:   "Video Learning"
-date:       2017-7-18
+date:       2017-11-18
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true

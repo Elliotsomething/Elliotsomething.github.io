@@ -180,7 +180,7 @@ ffmpeg对视频文件进行解码的大致流程：
 6 解码 avcodec_decode_audio4
 7 循环5 直到解码完成
 [image]
-<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-02.png">
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-02.jpg">
 
 #### 音频播放 （AudioSession）
 
