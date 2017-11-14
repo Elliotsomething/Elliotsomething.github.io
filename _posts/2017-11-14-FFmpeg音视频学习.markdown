@@ -1,0 +1,301 @@
+---
+layout:     post
+title:      "算法学习"
+subtitle:   "FFmpeg Learning"
+date:       2017-7-14
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - FFmpeg
+    - 音视频
+---
+
+**版权声明：本文皆摘抄自网络，仅用于学习参考；如有侵权，请随时联系。**
+
+### iOS 音视频初步学习 - FFmpeg
+
+#### ffmpeg介绍
+
+FFmpeg是一个开源免费跨平台的视频和音频流方案，属于自由软件，采用LGPL或GPL许可证（依据你选择的组件）。它提供了录制、转换以及流化音视频的完整解决方案。它包含了非常先进的音频/视频编解码库libavcodec，为了保证高可移植性和编解码质量，libavcodec里很多codec都是从头开发的。
+FFmpeg是一套可以用来记录、转换数字音频、视频，并能将其转化为流的开源计算机程序。它包括了目前领先的音/视频编码库libavcodec。 FFmpeg是在Linux下开发出来的，但它可以在包括Windows在内的大多数操作系统中编译。
+
+#### 0、准备工具
+
+1. gas-preprocessor
+2. yasm
+3. FFmpeg-iOS-build-script
+
+#### 1、下载gas-preprocessor
+那么 gas-preprocessor 是什么呢？[下载地址](https://github.com/libav/gas-preprocessor)
+
+gas-preprocessor 其实就是我们要编译 FFmpeg 的所需脚本文件。
+1）我们将其解压后，发现内部只有简单的 4 个文件，主要用到的就是gas-preprocessor.pl
+
+继续将 gas-preprocessor.pl 文件复制到 /usr/sbin/ 目录下（ps：应该会有很多小伙伴发现这个目录是根本没法修改的，那么这种情况下，小伙伴们可以将文件复制到 /usr/local/bin/ 目录下），在mac终端中使用cp命令将脚本文件gas-preprocessor.pl复制到 /usr/bin/目录，并赋予可执行权限。执行命令为：
+
+```
+（1）sudo cp -f /Users/dev.temobi/Downloads/gas-preprocessor-master/gas-preprocessor.pl /usr/bin/   （备注：/Users/dev.temobi/Downloads/gas-preprocessor-master/ 是脚本gas-preprocessor.pl所在的路径）
+
+（2）chmod +x /usr/bin/gas-preprocessor.pl
+```
+
+或者文件开启可执行权限，终端输入以下命令行：
+```
+chmod 777 /usr/sbin/gas-preprocessor.pl 或者 chmod 777 /usr/local/bin/gas-preprocessor.pl
+```
+
+#### 2、安装 yasm
+
+Yasm是一个完全重写的 NASM 汇编。目前，它支持x86和AMD64指令集，接受NASM和气体汇编语法，
+产出二进制，ELF32 ， ELF64 ， COFF ， Mach - O的（ 32和64 ），RDOFF2 ，的Win32和Win64对象的格式，
+并生成STABS 调试信息的来源，DWARF 2 ，CodeView 8格式。
+
+```
+直接通过homebrew安装：brew install yasm
+```
+
+#### 3、编译 FFmpeg-iOS-build-script
+
+下载[FFmpeg-iOS-build-script](https://github.com/kewlbear/FFmpeg-iOS-build-script)，解压后运行，得到我们需要的 iOS 能用的 ffmpeg 库，这样就不需要自己手动去下载FFmpeg的库了。
+
+进入解压后的 FFmpeg-iOS-build-script 文件夹，命令行如下：
+
+cd 小伙伴们的FFmpeg-iOS-build-script文件夹路径，执行 build-ffmpeg.sh 脚本："./build-ffmpeg.sh"
+
+```
+当然，官方是有说明的：
+To build everything:编译所有的版本arm64、armv7、x86_64的静态库
+
+./build-ffmpeg.sh
+
+To build arm64 libraries:编译支持arm64架构的静态库
+
+./build-ffmpeg.sh arm64
+
+To build fat libraries for armv7 and x86_64 (64-bit simulator):编译适用于armv7和x86_64(64-bit simulator)的静态库
+
+./build-ffmpeg.sh armv7 x86_64
+
+To build fat libraries from separately built thin libraries:编译合并的版本
+
+./build-ffmpeg.sh lipo
+```
+
+#### 实践-在xcode上运行FFmpeg
+
+新建工程，导入由Mac编译ffmpeg获取FFmpeg-iOS编译好的FFmpeg-iOS，然后导入系统依赖的库
+
+AudioToolbox.framework
+CoreMedia.framework
+VideoToolbox.framework
+libiconv.tbd
+libbz2.tbd
+libz.tbd
+
+然后修改一个.m文件为.mm，开启C/C++ 混编模式。
+
+在ViewController的头部导入avcodec.h
+```
+#include <libavcodec/avcodec.h>
+```
+在viewDidLoad中添加代码
+```
+printf("%s",avcodec_configuration());
+```
+
+#### 坑一：
+
+编译的时候报错： ‘libavcodec/avcodec.h’ file not found ，修改Header search paths 里的路径：
+```
+$(PROJECT_DIR)/FFmpeg-iOS/include
+```
+
+#### 坑二：
+
+编译的时候报错：Undefined symbols for architecture x86_64: "av_register_all()", referenced from:
+需要在#include <libavcodec/avcodec.h>导入文件加入extern "C"：
+```
+extern "C" {
+#include "libavformat/avformat.h"
+}
+```
+
+**说明：**
+
+ffmpeg使用说明
+ffmpeg库的接口都是c函数，其头文件也没有extern "C"的声明，所以在cpp文件里调用ffmpeg函数要注意了。
+一般来说，一个用C写成的库如果想被C/C++同时可以使用，那在头文件应该加上
+```
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+} // endof extern "C"
+#endif
+```
+如果在.cpp里调用av_register_all()在链接时将找到不符号，因为.cpp要求的符号名
+和ffmpeg库提供的符号名不一致。
+可以这么解决:
+```
+extern "C"
+{
+#include <libavutil/avutil.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+}
+```
+
+#### FFmpeg 视频解码实践
+
+ffmpeg对视频文件进行解码的大致流程：
+
+1、注册所有容器格式和CODEC: av_register_all()
+2、打开文件: av_open_input_file()
+3、从文件中提取流信息: av_find_stream_info()
+4、穷举所有的流，查找其中种类为CODEC_TYPE_VIDEO
+5、查找对应的解码器: avcodec_find_decoder()
+6、打开编解码器: avcodec_open()
+7、为解码帧分配内存: avcodec_alloc_frame()
+8、不停地从码流中提取中帧数据: av_read_frame()
+9、判断帧的类型，对于视频帧调用: avcodec_decode_video()
+10、解码完后，释放解码器: avcodec_close()
+11、关闭输入文件:av_close_input_file()
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-01.png">
+
+#### 视频播放
+
+1、使用openGL对每一帧进行播放
+2、使用Frame转图片加定时器进行播放
+
+
+#### 音频解码流程
+
+1 打开文件流avformat_open_input
+2  查找音频流AVMEDIA_TYPE_AUDIO
+3 找到解码器 avcodec_find_decoder
+4 打开解码器 avcodec_open2
+5 获取packet  av_read_frame
+6 解码 avcodec_decode_audio4
+7 循环5 直到解码完成
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-02.png">
+
+#### 音频播放 （AudioSession）
+
+AudioSession简介
+AudioSession这个玩意的主要功能包括以下几点（图片来自官方文档）：
+确定你的app如何使用音频（是播放？还是录音？）
+为你的app选择合适的输入输出设备（比如输入用的麦克风，输出是耳机、手机功放或者airplay）
+协调你的app的音频播放和系统以及其他app行为（例如有电话时需要打断，电话结束时需要恢复，按下静音按钮时是否歌曲也要静音等）
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-03.png">
+
+#### 音视频同步 基础知识
+
+音视频同步：播放的声音要和当前显示的画面保持一致。
+视频的帧率（Frame Rate）：指示视频一秒显示的帧数（图像数）。
+音频的采样率（Sample Rate）：表示音频一秒播放的样本（Sample）的个数。
+
+播放速度标准量的的选择一般来说有以下三种：
+（1）将视频同步到音频上 ，就是以音频的播放速度为基准来同步视频。视频比音频播放慢了，加快其播放速度；快了，则延迟播放。
+（2）将音频同步到视频上 ，就是以视频的播放速度为基准来同步音频。
+（3）将视频和音频同步外部的时钟上 ，选择一个外部时钟为基准，视频和音频的播放速度都以该时钟为标准。
+
+DTS，Decoding Time Stamp，解码时间戳，告诉解码器packet的解码顺序。
+PTS，Presentation Time Stamp，显示时间戳，指示从packet中解码出来的数据的显示顺序。
+
+对于音频来说，DTS和PTS是相同的，也就是其解码的顺序和解码的顺序是相同的，对于视频来说顺序有可能不同。（通常来说只有在流中含有B帧的时候，PTS和DTS才会不同。）
+
+视频编码后会有三种不同类型的帧：
+I帧 关键帧，包含了一帧的完整数据，解码时只需要本帧的数据，不需要参考其他帧。
+P帧 P是向前搜索，该帧的数据不完全的，解码时需要参考其前一帧的数据。
+B帧 B是双向搜索，解码这种类型的帧是最复杂，不但需要参考其一帧的数据，还需要其后一帧的数据。
+
+#### 音视频同步 代码（同步视频到音频）
+
+获取解码的视频帧时间。
+```
+AVFrame vFrame；
+AVStream vStream；
+//...解析视频获取vStream，解码视频帧获得vFrame...
+double timestamp = av_frame_get_best_effort_timestamp(&vFrame)*av_q2d(vStream->time_base);
+```
+获取解码的音频帧时间。
+```
+AVFrame aFrame；
+AVStream aStream；
+//...将正在播放的音频时间点记录下来作为基准...
+audioClock = aFrame.pkt_pts * av_q2d(aStream->time_base);
+```
+音视频同步逻辑
+```
+/* no AV sync correction is done if below the minimum AV sync threshold */
+#define AV_SYNC_THRESHOLD_MIN 0.04
+/* AV sync correction is done if above the maximum AV sync threshold */
+#define AV_SYNC_THRESHOLD_MAX 0.1
+/* If a frame duration is longer than this, it will not be duplicated to compensate AV sync */
+#define AV_SYNC_FRAMEDUP_THRESHOLD 0.1
+/* no AV correction is done if too big error */
+#define AV_NOSYNC_THRESHOLD 10.0
+double timestamp;
+//判断是否有有效的pts
+if(packet.pts == AV_NOPTS_VALUE) {
+ timestamp = 0;
+} else {
+ timestamp = av_frame_get_best_effort_timestamp(&vFrame)*av_q2d(vStream->time_base);
+}
+//计算帧率，平均每帧间隔时间
+double frameRate = av_q2d(vStream->avg_frame_rate);
+frameRate += vFrame.repeat_pict * (frameRate * 0.5);
+if (timestamp == 0.0) {
+ //按照默认帧率播放
+ usleep((unsigned long)(frameRate*1000));
+}else {
+ if (fabs(timestamp - audioClock) > AV_SYNC_THRESHOLD_MIN &&
+         fabs(timestamp - audioClock) < AV_NOSYNC_THRESHOLD) {
+     //如果视频比音频快，延迟差值播放，否则直接播放，这里没有做丢帧处理
+     if (timestamp > audioClock) {
+         usleep((unsigned long)((timestamp - audioClock)*1000000));
+     }
+ }
+}
+```
+
+
+#### H264码流结构分析
+
+1、码流总体结构：
+h264的功能分为两层，视频编码层（VCL）和网络提取层（NAL）。H.264 的编码视频序列包括一系列的NAL 单元，每个NAL 单元包含一个RBSP。一个原始的H.264 NALU 单元常由 [StartCode] [NALU Header] [NALU Payload] 三部分组成，其中 Start Code 用于标示这是一个NALU 单元的开始，必须是"00 00 00 01" 或"00 00 01"。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-04.png">
+
+其中RBPS有分为几种类型：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-05.png">
+NAL的解码单元的流程如下：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-06.png">
+
+2、 NAL Header：
+占一个字节，由三部分组成forbidden_bit(1bit)，nal_reference_bit(2bits)（优先级），nal_unit_type(5bits)（类型）。
+forbidden_bit:禁止位。
+nal_reference_bit：当前NAL的优先级，值越大，该NAL越重要。
+nal_unit_type ：NAL类型。参见下表
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-07.png">
+
+几个例子：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-09.png">
+
+#### 简单理解，音视频原理
+
+音视频的简单原理，就是一段序列播放的图片，再同步播放相应的序列音频采样片。里面就包含三个关键元素。(解码出来后：音频基础单元为PCM，视频的基础单元YUV)
+
+1、YUV图片：从H264、HEAV等编码的二进制数据中，解码出来的序列图片叫YUV图片，本质上跟常见的jpg、png一样。因为视频中的序列图片实在太多了，考虑到效率和历史原因等，视频中解码出来的图片帧为YUV。显卡的主要工作内容就是处理这些图形数据。
+2、PCM音频：从mp3、aac等编码的二进制数据中，解码出来的序列音频采样点叫PCM音频数据，可以理解每一片PCM音频波形就是一个单位的声音。了解PCM格式的信息可以见PCM百科。
+3、音画同步：将序列图片帧连续渲染到计算机图层，同时根据同步参数DTS、PTS来同步播放音频帧，这就是视频的播放过程了。请坚信，那些你未来接触到的奇怪音视频术语都是围绕这个简单过程的。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/ffmpegImage/ffmpeg-08.png">
