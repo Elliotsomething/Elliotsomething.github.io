@@ -34,14 +34,14 @@ gas-preprocessor 其实就是我们要编译 FFmpeg 的所需脚本文件。
 
 继续将 gas-preprocessor.pl 文件复制到 /usr/sbin/ 目录下（ps：应该会有很多小伙伴发现这个目录是根本没法修改的，那么这种情况下，小伙伴们可以将文件复制到 /usr/local/bin/ 目录下），在mac终端中使用cp命令将脚本文件gas-preprocessor.pl复制到 /usr/bin/目录，并赋予可执行权限。执行命令为：
 
-```
+```objective_c
 （1）sudo cp -f /Users/dev.temobi/Downloads/gas-preprocessor-master/gas-preprocessor.pl /usr/bin/   （备注：/Users/dev.temobi/Downloads/gas-preprocessor-master/ 是脚本gas-preprocessor.pl所在的路径）
 
 （2）chmod +x /usr/bin/gas-preprocessor.pl
 ```
 
 或者文件开启可执行权限，终端输入以下命令行：
-```
+```objective_c
 chmod 777 /usr/sbin/gas-preprocessor.pl 或者 chmod 777 /usr/local/bin/gas-preprocessor.pl
 ```
 
@@ -51,9 +51,7 @@ Yasm是一个完全重写的 NASM 汇编。目前，它支持x86和AMD64指令�
 产出二进制，ELF32 ， ELF64 ， COFF ， Mach - O的（ 32和64 ），RDOFF2 ，的Win32和Win64对象的格式，
 并生成STABS 调试信息的来源，DWARF 2 ，CodeView 8格式。
 
-```
 直接通过homebrew安装：brew install yasm
-```
 
 #### 3、编译 FFmpeg-iOS-build-script
 
@@ -63,7 +61,7 @@ Yasm是一个完全重写的 NASM 汇编。目前，它支持x86和AMD64指令�
 
 cd 小伙伴们的FFmpeg-iOS-build-script文件夹路径，执行 build-ffmpeg.sh 脚本："./build-ffmpeg.sh"
 
-```
+```objective_c
 当然，官方是有说明的：
 To build everything:编译所有的版本arm64、armv7、x86_64的静态库
 
@@ -96,18 +94,18 @@ libz.tbd
 然后修改一个.m文件为.mm，开启C/C++ 混编模式。
 
 在ViewController的头部导入avcodec.h
-```
+```objective_c
 #include <libavcodec/avcodec.h>
 ```
 在viewDidLoad中添加代码
-```
+```objective_c
 printf("%s",avcodec_configuration());
 ```
 
 #### 坑一：
 
 编译的时候报错： ‘libavcodec/avcodec.h’ file not found ，修改Header search paths 里的路径：
-```
+```objective_c
 $(PROJECT_DIR)/FFmpeg-iOS/include
 ```
 
@@ -115,7 +113,7 @@ $(PROJECT_DIR)/FFmpeg-iOS/include
 
 编译的时候报错：Undefined symbols for architecture x86_64: "av_register_all()", referenced from:
 需要在#include <libavcodec/avcodec.h>导入文件加入extern "C"：
-```
+```objective_c
 extern "C" {
 #include "libavformat/avformat.h"
 }
@@ -126,7 +124,7 @@ extern "C" {
 ffmpeg使用说明
 ffmpeg库的接口都是c函数，其头文件也没有extern "C"的声明，所以在cpp文件里调用ffmpeg函数要注意了。
 一般来说，一个用C写成的库如果想被C/C++同时可以使用，那在头文件应该加上
-```
+```objective_c
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -137,7 +135,7 @@ extern "C" {
 如果在.cpp里调用av_register_all()在链接时将找到不符号，因为.cpp要求的符号名
 和ffmpeg库提供的符号名不一致。
 可以这么解决:
-```
+```objective_c
 extern "C"
 {
 #include <libavutil/avutil.h>
@@ -216,21 +214,21 @@ B帧 B是双向搜索，解码这种类型的帧是最复杂，不但需要参�
 #### 音视频同步 代码（同步视频到音频）
 
 获取解码的视频帧时间。
-```
+```objective_c
 AVFrame vFrame；
 AVStream vStream；
 //...解析视频获取vStream，解码视频帧获得vFrame...
 double timestamp = av_frame_get_best_effort_timestamp(&vFrame)*av_q2d(vStream->time_base);
 ```
 获取解码的音频帧时间。
-```
+```objective_c
 AVFrame aFrame；
 AVStream aStream；
 //...将正在播放的音频时间点记录下来作为基准...
 audioClock = aFrame.pkt_pts * av_q2d(aStream->time_base);
 ```
 音视频同步逻辑
-```
+```objective_c
 /* no AV sync correction is done if below the minimum AV sync threshold */
 #define AV_SYNC_THRESHOLD_MIN 0.04
 /* AV sync correction is done if above the maximum AV sync threshold */
