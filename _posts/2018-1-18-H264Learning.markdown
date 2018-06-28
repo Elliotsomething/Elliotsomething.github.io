@@ -1,0 +1,121 @@
+---
+layout:     post
+title:      "H264 初步学习"
+subtitle:   "H264 Learning"
+date:       2018-1-18
+author:     "Elliot"
+header-img: "img/post-bg-ios9-web.jpg"
+catalog:    true
+tags:
+    - 视频
+    - H264
+---
+
+**版权声明：本文皆摘抄自网络，仅用于学习参考；如有侵权，请随时联系。**
+
+##### 什么是NALU？
+
+H264码流可以分为两层，VCL层和NAL层，NAL的全称是Network abstraction layer,叫网络抽象层，它保存了H264相关的参数信息和图像信息，NAL层由多个单元NALU组成,NALU由了NALU头（00 00 00 01或者00 00 01）、sps(序列参数集)、pps(图像参数集合)、slice、sei、IDR帧、I帧（在图像运动变化较少时，I帧后面是7个P帧，如果图像运动变化大时，一个序列就短了，I帧后面可能是3个或者4个P帧）、P帧、B帧等数据。
+
+##### sps、pps、I帧、P帧在NALU中的关系和nalu type判断
+
+一个完整的NALU单元结构图如下：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-00.jpg">
+
+00 00 00 01是NALU头，是序列的标识符的开头，0x27转成二进制是100111，00111转成十进制是7，那么7对应NALU type=sps，0x28转成二进制是101000，转成十进制是8，8对应NALU type=pps，0x25转成二进制是100101，00101转成十进制是5，5对应的NALU type=IDR帧（使用FFMPEG，sps和pps是保存在AVCodecContext的extradata.data中，在解码提取sps和pps时，判断NALU type可以用extradata.data[ 4 ]&0x1f(结果是7是sps，8是pps，计算方式是先转成二进制，0x27&0x1f=11111&00111=00111=7，pps计算类似)），NALU type=1是splice，splice有三种编码模式，I_slice、P_slice、B_slice,I帧在编码时就分割保存在splice中。
+NALU type值对应表如下：
+
+1
+NALU_TYPE_SLICE
+2
+NALU_TYPE_DPA
+3
+NALU_TYPE_DPB
+4
+NALU_TYPE_DPC
+5
+NALU_TYPE_IDR
+6
+NALU_TYPE_SEI
+7
+NALU_TYPE_SPS
+8
+NALU_TYPE_PPS
+9
+NALU_TYPE_AUD
+10
+NALU_TYPE_EOSEQ
+11
+NALU_TYPE_EOSTREAM
+12
+NALU_TYPE_FILL
+
+
+##### H264分层结构
+
+H.264编码器输出的Bit流中，每个Bit都隶属于某个句法元素。句法元素被组织成有层次的结构，分别描述各个层次的信息。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-01.jpg">
+
+H.264分层结构由五层组成，分别是序列参数集、图像参数集、片（Slice）、和宏块和子块。参数集是一个独立的数据单位，不依赖于参数集外的其它句法元素。图2描述了参数集与参数集外的句法元素之间的关系。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-02.jpg">
+
+一个参数集不对应某一个特定的图像或序列，同一序列参数集可以被多个图像参数集引用，同理，同一个图像参数集也可以被多个图像引用。只在编码器认为需要更新参数集的内容时，才会发出新的参数集。
+
+- H.264码流第一个 NALU 是 SPS（序列参数集Sequence Parameter Set）
+- H.264码流第二个 NALU 是 PPS（图像参数集Picture Parameter Set）
+- H.264码流第三个 NALU 是 IDR（即时解码器刷新）
+
+IDR帧和I帧的关系
+IDR帧就是I帧，但是I帧不一定是IDR帧，在一个完整的视频流单元中第一个图像帧是IDR帧，IDR帧是强制刷新帧，在解码过程中，当出现了IDR帧时，要更新sps、pps，原因是防止前面I帧错误，导致sps，pps参考I帧导致无法纠正。
+
+再普及一个概念是GOP，GOP的全称是Group of picture图像组，也就是两个I帧之间的距离，GOP值越大，那么I帧率之间P帧和B帧数量越多，图像画质越精细，如果GOP是120，如果分辨率是720P，帧率是60，那么两I帧的时间就是120/60=2s.
+
+在H.264中，图像以序列为单位进行组织。一个序列的第一个图像叫做IDR图像，IDR图像都是I帧，H.264引入IDR图像为了解码的同步，当解码器解码到IDR图像时，立即将参考帧队列清空，将已解码的数据全部输出或抛弃，重新查找参数集，开始一个新的序列。这样，如果前一个序列出现重大错误，在这里可以获得重新同步的机会。IDR图像之后的图像永远不会使用IDR之前的图像的数据来解码。
+IDR是I帧，但I帧不一定是IDR。I帧之后的图像有可能会使用I帧之前的图像做运动参考。
+
+
+下面，我们来具体看看 H.264 的码流结构：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-03.jpg">
+
+如我们所见，每个分片也包含着头和数据两部分，分片头中包含着分片类型、分片中的宏块类型、分片帧的数量以及对应的帧的设置和参数等信息，而分片数据中则是宏块，这里就是我们要找的存储像素数据的地方。
+宏块是视频信息的主要承载者，因为它包含着每一个像素的亮度和色度信息。视频解码最主要的工作则是提供高效的方式从码流中获得宏块中的像素阵列。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-04.jpg">
+
+从上图中，可以看到，宏块中包含了宏块类型、预测类型、Coded Block Pattern、Quantization Parameter、像素的亮度和色度数据集等等信息。
+至此，我们对 H.264 的码流数据结构应该有了一个大致的了解。
+
+##### FFmpeg 获取SPS和PPS
+
+在H.264标准协议中规定了多种不同的NAL Unit类型，其中类型7表示该NAL Unit内保存的数据为Sequence Paramater Set。又称作序列参数集。SPS中保存了一组编码视频序列(Coded video sequence)的全局参数。
+
+除了序列参数集SPS之外，H.264中另一重要的参数集合为图像参数集Picture Paramater Set(PPS)。通常情况下，PPS类似于SPS，在H.264的裸码流中单独保存在一个NAL Unit中，只是PPS NAL Unit的nal_unit_type值为8；而在封装格式中，PPS通常与SPS一起，保存在视频文件的文件头中。
+
+
+下载名为：H264_artifacts_motion.h264 的源文件（http://samples.mplayerhq.hu/V-codecs/h264/）
+测试放在vlc中可以直接播放
+使用sublimeText可直接打开查看二进制文件：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-05.jpg">
+
+有时并不能直接得到NALU，文件中也没有ox00000001 分隔符：
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-06.jpg">
+
+RTP格式的NAL数据前4个字表示的是NAL的长度
+
+1. 从图中可以发现，packet中的数据起始处没有分隔符(0x00000001), 也不是0x65、0x67、0x68、0x41等字节，所以可以肯定这不是标准的nalu。
+2. 前4个字0x000032ce表示的是nalu的长度，从第5个字节开始才是nalu的数据。所以直接将前4个字节替换为0x00000001即可得到标准的nalu数据
+
+获取pps和sps
+
+1. pps及sps不能从packet获得，而是保存在AVCodecContext的extradata数据域中
+2. 一般情况下，extradata中包含一个sps、一个pps 的nalu, 从h264_mp4toannexb_bsf.c代码中容易看出extradata的数据格式
+3. 分析后的sps及pps依然储存在extradata域中，并添加了起始符
+
+在H264码流中,都是以"0x00 0x00 0x01"或者"0x00 0x00 0x00 0x01"为开始码的
+找到开始码之后,使用开始码之后的第一个字节的低5位判断是否为7(sps)或者8(pps)， 及data[4] & 0x1f == 7 || data[4] & 0x1f == 8。
