@@ -2,7 +2,7 @@
 layout:     post
 title:      "iOS 之 图片数据类型"
 subtitle:   "Image Type"
-date:       2017-11-18
+date:       2018-3-14
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
