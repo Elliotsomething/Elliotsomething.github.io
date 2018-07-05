@@ -21,7 +21,7 @@ H264码流可以分为两层，VCL层和NAL层，NAL的全称是Network abstract
 
 一个完整的NALU单元结构图如下：
 [image]
-<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-00.jpg">
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-00.png">
 
 00 00 00 01是NALU头，是序列的标识符的开头，0x27转成二进制是100111，00111转成十进制是7，那么7对应NALU type=sps，0x28转成二进制是101000，转成十进制是8，8对应NALU type=pps，0x25转成二进制是100101，00101转成十进制是5，5对应的NALU type=IDR帧（使用FFMPEG，sps和pps是保存在AVCodecContext的extradata.data中，在解码提取sps和pps时，判断NALU type可以用extradata.data[ 4 ]&0x1f(结果是7是sps，8是pps，计算方式是先转成二进制，0x27&0x1f=11111&00111=00111=7，pps计算类似)），NALU type=1是splice，splice有三种编码模式，I_slice、P_slice、B_slice,I帧在编码时就分割保存在splice中。
 NALU type值对应表如下：
@@ -79,12 +79,12 @@ IDR是I帧，但I帧不一定是IDR。I帧之后的图像有可能会使用I帧�
 
 下面，我们来具体看看 H.264 的码流结构：
 [image]
-<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-03.jpg">
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-03.png">
 
 如我们所见，每个分片也包含着头和数据两部分，分片头中包含着分片类型、分片中的宏块类型、分片帧的数量以及对应的帧的设置和参数等信息，而分片数据中则是宏块，这里就是我们要找的存储像素数据的地方。
 宏块是视频信息的主要承载者，因为它包含着每一个像素的亮度和色度信息。视频解码最主要的工作则是提供高效的方式从码流中获得宏块中的像素阵列。
 [image]
-<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-04.jpg">
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-04.png">
 
 从上图中，可以看到，宏块中包含了宏块类型、预测类型、Coded Block Pattern、Quantization Parameter、像素的亮度和色度数据集等等信息。
 至此，我们对 H.264 的码流数据结构应该有了一个大致的了解。
@@ -100,7 +100,7 @@ IDR是I帧，但I帧不一定是IDR。I帧之后的图像有可能会使用I帧�
 测试放在vlc中可以直接播放
 使用sublimeText可直接打开查看二进制文件：
 [image]
-<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-05.jpg">
+<img src="https://Elliotsomething.GitHub.io/images/H264Learning/H264Learning-05.png">
 
 有时并不能直接得到NALU，文件中也没有ox00000001 分隔符：
 [image]
