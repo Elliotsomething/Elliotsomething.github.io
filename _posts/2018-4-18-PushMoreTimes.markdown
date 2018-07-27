@@ -24,8 +24,10 @@ tags:
 #import "DemoNavViewController.h"  
 @interface DemoNavViewController () <UINavigationControllerDelegate>  
 // 记录push标志  
+
 @property (nonatomic, getter=isPushing) BOOL pushing;  
 @end  
+
 @implementation DemoNavViewController  
 - (void)viewDidLoad {  
     [super viewDidLoad];  
@@ -44,6 +46,7 @@ tags:
     [super pushViewController:viewController animated:animated];  
 }    
 #pragma mark - UINavigationControllerDelegate  
+
 -(void)navigationController:(UINavigationController *)navigationController didShowViewController:(UIViewController *)viewController animated:(BOOL)animated  
 {  
     self.pushing = NO;  
