@@ -13,6 +13,23 @@ tags:
 **版权声明：本文为博主原创文章，未经博主允许不得转载**
 
 
+#### XCode编译速度提升
+
+由于之前在Mac mini上开发过一段时间，所以对于编译速度提升还是比较重要的（编译一次半个小时了解一下）。这里整理了一下通过修改Xcode配置来提升编译速度的的方法，增量编译等暂不讨论。
+
+#### 序、xcode编译过程
+1、预编译pch文件（如果有的话）
+2、编译各种资源文件
+3、copy静态资源
+4、compile asset catalogs
+5、process info.plist
+6、link
+7、生成 dsym文件
+8、sign app
+
+如果要优化编译速度，基本上就是从以上几点着手，本文从1、3、4、5、6、7这几点开始，优化编译速度。虽然现在xcode自带了增量编译，但是每次clear后重新编译的时候，还是会要耗时很久（经历过Mac Mini的人应该深有体会）
+
+
 #### 开启编译耗时显示
 
 打开终端执行defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES    重启Xcode
@@ -21,7 +38,8 @@ tags:
 
 对所编译项目的Scheme进行配置  Product > Scheme > Edit Scheme > Build  Build Opitions选项中，去掉Find Implicit Dependencies. 
 
-![image-20180523110806069](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523110806069.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-01.png">
 
 原理：
 选中Find Implicit Dependencies时，编译以下内容：
@@ -36,7 +54,7 @@ Test:
 对不同设置下（是否选中Find Implicit Dependencies）的项目编译时间进行比较。
 注：每次编译前 进行clean操作（shift + command + k），达到消除Xcode自身增量编译带来的干扰。
 
-```
+```c
 缺点分析：
 在这个选项（Find Implicit Dependencies）被选中的情况下，即使你只是对项目进行了很细微的
 改变，项目中的所有资源文件都会被重新编译一遍。也会对所有被改变的frameworks进行编译。没有选
@@ -50,7 +68,8 @@ Test:
 
 在Build Settings中，有个Architectures配置选项。 
 
-![image-20180523110918609](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523110918609.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-02.png">
 
 Architectures
 是指定工程支持的指令集的集合，如果设置多个architecture，则生成的二进制包会包含多个指令集代码，提及会随之变大。
@@ -61,7 +80,7 @@ Valid Architectures
 Build Active Architecture Only
 指定是否只对当前连接设备所支持的指令集编译，默认Debug的时候设置为YES，Release的时候设为NO。Debug设置为YES时只编译当前的architecture版本，生成的包只包含当前连接设备的指令集代码；设置为NO时，则生成的包包含所有的指令集代码（上述的V艾力达Architecture与Architecture的交集）。所以为了更快的编译速度，Debug应设为YES，而Release应设为NO。
 
-```
+```c
 注：Debug设置为YES时，如果连接的设备是arm64的（iPhone 5s，iPhone 6（plus）等），
 则Valid Architecture中必须包含arm64，否则编译会出错。这种模式下编译出来的版本是向下
 兼容的，即：编译出的armv6版本可在armv7版本上运行。
@@ -71,7 +90,8 @@ Build Active Architecture Only
 
 Build Setting > Apple LLVM 7.1 - Language 
 
-![image-20180523111114512](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523111114512.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-03.png">
 
 Xcode 6及之后版本默认不使用pch文件参与项目编译，原因有二：
 \* 去掉自动导入的系统框架类库的头文件们可以提高源文件的复用性，便于迁移；
@@ -88,7 +108,8 @@ Xcode 6及之后版本默认不使用pch文件参与项目编译，原因有二�
 
 Build Setting >  Compile - Code Generation > Optimization Level 
 
-![image-20180523111202596](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523111202596.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-04.png">
 
 Debug None[-Onone] Release Fast[-O] 是Xcode在Debug模式下编译项目的最优选项，通过测试可以看出，在默认配置情况下和自定义情况下的编译耗时存在比较明显的差异。
 
@@ -135,6 +156,8 @@ Step 2
 这会在已存在的DeriveData上安装一个卷，用于隐藏旧的文件。这些文件仍会占据空间，但在移除RAM磁盘之前都无法访问。
 
 在重启或从Finder中弹出RAM磁盘时，磁盘中的内容将会消失。下次再创建磁盘时，Xcode将会重新构建它的索引和你的项目中间文件。
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-05.png">
 
 创建虚拟磁盘后, 并不是直接占用掉所有分配的空间, 而是根据虚拟磁盘中的文件总大小来逐渐占用内存.
  注：如果创建的虚拟磁盘已满, 会导致编译的失败. 此时清除掉Derived Data后重新编译, 就算有足够的空间也还是有可能会导致编译失败. 重启Xcode可以解决此问题.
@@ -153,7 +176,8 @@ Step 2
 
 在工程对应Target的Build Settings中，找到Debug Information Format这一项，将Debug时的DWARF with dSYM file改为DWARF。
 
-![image-20180523111320498](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523111320498.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-06.png">
 
 这一项设置的是是否将调试信息加入到可执行文件中，改为DWARF后，如果程序崩溃，将无法输出崩溃位置对应的函数堆栈，但由于Debug模式下可以在XCode中查看调试信息，所以改为DWARF影响并不大。
 
@@ -163,7 +187,8 @@ Step 2
 
 Apple LLVM 7.1 - Code Generation Link-Time Optimization 
 
-![image-20180523111600644](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523111600644.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-07.png">
 
 Link-Time Optimization执行链接时优化（LTO）。在Clang/LLVM领域，这意味着链接器获得的是LLVM字节码，而不是通常的目标文件。这些字节码在一种更抽象的层次上代表程序[这里写链接内容](http://blog.csdn.net/qq_25131687/article/details/www.pc6.com/infoview/Article_61969.html)的执行过程，允许LTO得以进行，但是坏处是，仍然需要将他们转换成机器代码，在链接时需要额外的处理时间。
 
@@ -179,7 +204,8 @@ Link-Time Optimization执行链接时优化（LTO）。在Clang/LLVM领域，这
 
 Build Setting > Asset Catalog Compiler - Options  
 
-![image-20180523111809334](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523111809334.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-08.png">
 
 在Optimization 优化设置项有三个选项，不指定、time和Space。
 
@@ -189,7 +215,8 @@ Optimization nothing是Xcode默认的设置。  与预想的不同，在选择O
 
 是否扁平化编译XIB文件。 
 
-![image-20180523112016641](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523112016641.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-09.png">
 
  官方解释是：指定是否在编译时剥离nib文件以优化它们的大小，设为YES时编译出来的nib文件会被压缩但是不能编辑。
 
@@ -207,9 +234,10 @@ Description: Boolean value. Specifies whether to strip a nib files to  reduce t
 
 Xcode中Strip Linked Product 的默认设置为YES，但是Deployment Postprocessing的默认设置为NO。在Deployment Postprocessing 是Deployment的总开关，所以在打开这个选项之前 Strip Linked Product是不起作用的。
 
-![image-20180523112308139](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523112308139.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-10.png">
 
-```
+```c
 注：当Strip Linked Product设为YES的时候，运行app，断点不会中断，在程序中打印[NSThread
 callStackSymbols]也无法看到类名和方法名。而在程序崩溃时，函数调用栈中也无法看到类名和方法名。
 ```
@@ -218,7 +246,8 @@ callStackSymbols]也无法看到类名和方法名。而在程序崩溃时，函
 
 将Dead Code Stripping 设置为YES 也能够一定程度上对程序安装包进行优化，只是优化的效果一般，对于一些比较小的项目甚至没有什么优化体现。
 
-![image-20180523112517588](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523112517588.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-11.png">
 
 Dead Code Stripping 是对程序编译出的可执行二进制文件中没有被实际使用的代码进行Strip操作。
 
@@ -226,4 +255,22 @@ Dead Code Stripping 是对程序编译出的可执行二进制文件中没有被
 
 **File菜单 -> Working space  Building System -> New Building System(Preview)**
 
-![image-20180523124507997](/var/folders/_l/m9rl7nfx75x5qqcv_7spktn80000gn/T/abnerworks.Typora/image-20180523124507997.png)
+[image]
+<img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-12.png">
+测试了大概优化了8s左右
+
+
+测试设备：
+MacBook Pro (Retina, 15-inch, Mid 2015)
+2.2 GHz Intel Core i7 4核
+16 GB 1600 MHz DDR3
+实际测试效果
+
+
+配置修改 | 现有配置 | 修改DWARF | 其他配置修改 | 加载RAM  | 使用new Build
+3次测试平均耗时 | 210s | 197s | 191s | 181s | 172s
+
+编译速度提升18%左右，其中主要优化项为：修改DWARF、加载RAM、使用new Build。
+
+
+结论：编译速度优化最主要的是靠硬件，通过修改配置来优化编译速度总是有限的。
