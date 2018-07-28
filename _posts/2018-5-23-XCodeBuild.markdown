@@ -38,7 +38,6 @@ tags:
 
 对所编译项目的Scheme进行配置  Product > Scheme > Edit Scheme > Build  Build Opitions选项中，去掉Find Implicit Dependencies. 
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-01.png">
 
 原理：
@@ -68,7 +67,7 @@ Test:
 
 在Build Settings中，有个Architectures配置选项。 
 
-[image]
+
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-02.png">
 
 Architectures
@@ -90,7 +89,6 @@ Build Active Architecture Only
 
 Build Setting > Apple LLVM 7.1 - Language 
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-03.png">
 
 Xcode 6及之后版本默认不使用pch文件参与项目编译，原因有二：
@@ -108,7 +106,6 @@ Xcode 6及之后版本默认不使用pch文件参与项目编译，原因有二�
 
 Build Setting >  Compile - Code Generation > Optimization Level 
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-04.png">
 
 Debug None[-Onone] Release Fast[-O] 是Xcode在Debug模式下编译项目的最优选项，通过测试可以看出，在默认配置情况下和自定义情况下的编译耗时存在比较明显的差异。
@@ -156,7 +153,7 @@ Step 2
 这会在已存在的DeriveData上安装一个卷，用于隐藏旧的文件。这些文件仍会占据空间，但在移除RAM磁盘之前都无法访问。
 
 在重启或从Finder中弹出RAM磁盘时，磁盘中的内容将会消失。下次再创建磁盘时，Xcode将会重新构建它的索引和你的项目中间文件。
-[image]
+
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-05.png">
 
 创建虚拟磁盘后, 并不是直接占用掉所有分配的空间, 而是根据虚拟磁盘中的文件总大小来逐渐占用内存.
@@ -176,7 +173,6 @@ Step 2
 
 在工程对应Target的Build Settings中，找到Debug Information Format这一项，将Debug时的DWARF with dSYM file改为DWARF。
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-06.png">
 
 这一项设置的是是否将调试信息加入到可执行文件中，改为DWARF后，如果程序崩溃，将无法输出崩溃位置对应的函数堆栈，但由于Debug模式下可以在XCode中查看调试信息，所以改为DWARF影响并不大。
@@ -187,7 +183,6 @@ Step 2
 
 Apple LLVM 7.1 - Code Generation Link-Time Optimization 
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-07.png">
 
 Link-Time Optimization执行链接时优化（LTO）。在Clang/LLVM领域，这意味着链接器获得的是LLVM字节码，而不是通常的目标文件。这些字节码在一种更抽象的层次上代表程序[这里写链接内容](http://blog.csdn.net/qq_25131687/article/details/www.pc6.com/infoview/Article_61969.html)的执行过程，允许LTO得以进行，但是坏处是，仍然需要将他们转换成机器代码，在链接时需要额外的处理时间。
@@ -204,7 +199,6 @@ Link-Time Optimization执行链接时优化（LTO）。在Clang/LLVM领域，这
 
 Build Setting > Asset Catalog Compiler - Options  
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-08.png">
 
 在Optimization 优化设置项有三个选项，不指定、time和Space。
@@ -215,7 +209,6 @@ Optimization nothing是Xcode默认的设置。  与预想的不同，在选择O
 
 是否扁平化编译XIB文件。 
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-09.png">
 
  官方解释是：指定是否在编译时剥离nib文件以优化它们的大小，设为YES时编译出来的nib文件会被压缩但是不能编辑。
@@ -234,7 +227,6 @@ Description: Boolean value. Specifies whether to strip a nib files to  reduce t
 
 Xcode中Strip Linked Product 的默认设置为YES，但是Deployment Postprocessing的默认设置为NO。在Deployment Postprocessing 是Deployment的总开关，所以在打开这个选项之前 Strip Linked Product是不起作用的。
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-10.png">
 
 ```c
@@ -246,7 +238,6 @@ callStackSymbols]也无法看到类名和方法名。而在程序崩溃时，函
 
 将Dead Code Stripping 设置为YES 也能够一定程度上对程序安装包进行优化，只是优化的效果一般，对于一些比较小的项目甚至没有什么优化体现。
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-11.png">
 
 Dead Code Stripping 是对程序编译出的可执行二进制文件中没有被实际使用的代码进行Strip操作。
@@ -255,10 +246,8 @@ Dead Code Stripping 是对程序编译出的可执行二进制文件中没有被
 
 **File菜单 -> Working space  Building System -> New Building System(Preview)**
 
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/XCodeBuild/XCodeBuild-12.png">
 测试了大概优化了8s左右
-
 
 测试设备：
 MacBook Pro (Retina, 15-inch, Mid 2015)
@@ -266,11 +255,9 @@ MacBook Pro (Retina, 15-inch, Mid 2015)
 16 GB 1600 MHz DDR3
 实际测试效果
 
-
 配置修改 | 现有配置 | 修改DWARF | 其他配置修改 | 加载RAM  | 使用new Build
 3次测试平均耗时 | 210s | 197s | 191s | 181s | 172s
 
 编译速度提升18%左右，其中主要优化项为：修改DWARF、加载RAM、使用new Build。
-
 
 结论：编译速度优化最主要的是靠硬件，通过修改配置来优化编译速度总是有限的。
