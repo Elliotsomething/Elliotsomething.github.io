@@ -28,12 +28,12 @@ OpenGL ES 是从 OpenGL 裁剪定制而来的，去除了 glBegin/glEnd，四边
 可以理解成是一个在移动平台上能够支持 OpenGL 最基本功能的精简规范。
 OpenGL ES 横跨在两个处理器之间，协调两个内存区域之间的数据交换。
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-01.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-01.jpg">
 
 通常来说，计算机系统中 CPU、GPU 是协同工作的。CPU 计算好显示内容提交到 GPU，GPU 渲染完成后将渲染结果放入帧缓冲区，随后视频控制器会按照 VSync 信号逐行读取帧缓冲区的数据，经过可能的数模转换传递给显示器显示。所以，尽可能让 CPU 和 GPU 各司其职发挥作用是提高渲染效率的关键。
 正如我们之前提到过，OpenGL 正是给我们提供了访问 GPU 的能力，不仅如此，它还引入了缓存（Buffer）这个概念，大大提高了处理效率。
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-02.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-02.jpg">
 
 图中的剪头，代表着数据交换，也是主要的性能瓶颈。
 从一个内存区域复制到另一个内存区域的速度是相对较慢的，并且在内存复制的过程中，CPU 和 GPU 都不能处理这区域内存，避免引起错误。此外，CPU / GPU 执行计算的速度是很快的，而内存的访问是相对较慢的，这也导致处理器的性能处于次优状态，这种状态叫做“数据饥饿”，简单来说就是空有一身本事却无用武之地。
@@ -78,10 +78,10 @@ OpenGL ES 上下文（EAGLContext） : 管理所有 iOS 要绘制的 OpenGL ES �
 2D 坐标和像素也是不同的，2D 坐标精确表示一个点在 2D 空间中的位置，而 2D 像素是这个点的近似值，2D 像素受到你的屏幕/窗口分辨率的限制。
 图形渲染管线可以被划分为几个阶段，每个阶段将会把前一个阶段的输出作为输入。所有这些阶段都是高度专门化的（它们都有一个特定的函数），并且很容易并行执行。它的工作过程和车间流水线一致，各个模块各司其职但是又相互依赖。
 下图就是渲染管线：
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-04.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-04.jpg">
 
 PS：OpenGL ES 采用服务器/客户端编程模型，客户端运行在 CPU 上，服务端运行在 GPU 上，调用 OpenGL ES 函数的时，由客户端发送至服务器端，并被服务端转换成底层图形硬件支持的绘制命令。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-05.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-05.jpg">
 
 左边的客户端程序通过调用 OpenGL ES 接口，将顶点，着色器程序，纹理，以及其他一些 GL 状态参数传入右边的 GL 服务端， 然后在客户端调用绘制命令的时候， GL 便会将输入的图元，逐一执行渲染管线的每个阶段，然后将每个像素的颜色值写入到帧缓存中， 最后视窗系统就可以将帧缓存中的颜色值显示在屏幕上。 此外，应用程序也可以从帧缓存中读取数据到客户端。
 在整个管线中，顶点着色器和片段着色器是可编程的部分，应用程序可以通过提供着色器程序在 GPU 中被作用于渲染管线，可编程就是说这个操作可以动态编程实现而不必固定写死在代码中。可动态编程实现这一功能一般都是脚本提供的，在 OpenGL ES 中也一样，编写这样脚本的能力是由 OpenGL 着色语言（OpenGL Shading Language, GLSL）提供的。
@@ -97,54 +97,54 @@ PS：OpenGL ES 采用服务器/客户端编程模型，客户端运行在 CPU �
 为了让 OpenGL 知道我们的坐标和颜色值构成的到底是什么，OpenGL 需要你去指定这些数据所表示的渲染类型。我们是希望把这些数据渲染成一系列的点？一系列的三角形？还是仅仅是一个长长的线？做出的这些提示叫做图元（Primitive），任何一个绘制指令的调用都将把图元传递给 OpenGL 。OpenGL 支持三种基本图元：点，线和三角形。
 当然，OpenGL ES 并不提供对 3D 模型的定义，在传入 OpenGL ES 之前应用程序应该首先将 3D 模型转换为一组图元的集合。每个模型是独立绘制的，修改其中一个模型的一些设置并不会影响其他模型。
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-06.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-06.jpg">
 
 每个图元由一个或者多个顶点组成，每个顶点定义一个点，一条边的一端或者三角形的一个角。每个顶点关联一些数据，这些数据包括顶点坐标，颜色，法向量以及纹理坐标等。所有这些顶点相关的信息就构成顶点数据，这些数据首先被上传到 GL 服务端，然后就可以进行绘制。
 PS：OpenGL 中的命令总是按照它被接收到的顺序执行，这意味着一组图元必须被全部绘制完毕才会开始绘制下一组图元。同时也意味着程序对帧缓冲的像素读取的结果一定是该命令之前所有 OpenGL 命令执行的结果。
 
 ###### 2. 顶点着色器
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-07.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-07.jpg">
 
 顶点着色器对每个顶点执行一次运算，它可以使用顶点数据来计算该顶点的坐标，颜色，光照，纹理坐标等，在渲染管线中每个顶点都是独立地被执行。
 在顶点着色器中最重要的任务是执行顶点坐标变换，应用程序中设置的图元顶点坐标通常是针对本地坐标系的。本地坐标系简化了程序中的坐标计算，但是 GL 并不识别本地坐标系，所以在顶点着色器中要对本地坐标执行模型视图变换，将本地坐标转化为裁剪坐标系的坐标值。
 顶点着色器的另一个功能是向后面的片段着色器提供一组易变变量（varying）。易变变量会在图元装配阶段之后被执行插值计算，如果是单重采样，其插值点为片段的中心，如果多重采样，其插值点可能为多个采样片段中的任意一个位置。易变变量可以用来保存插值计算片段的颜色，纹理坐标等信息。
 ###### 3. 图元装配
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-08.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-08.jpg">
 
 在顶点着色器程序输出顶点坐标之后，各个顶点被按照绘制命令中的图元类型参数，以及顶点索引数组被组装成一个个图元。
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-09.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-09.jpg">
 
 顶点数组首先通过 GL 命令输入到 GL 渲染管线中，此时顶点坐标位于应用程序的本地坐标系；在经过顶点着色器的计算之后，顶点坐标被转化到裁剪坐标系中，这通常通过向顶点着色器传入一个模型视图变换矩阵，然后在顶点着色器中执行坐标变换。
 裁剪坐标系被定义在一个视锥体裁剪的空间里，视锥体是游戏场景的一个可视空间，它由6个裁剪平面构成，分别是：近平面，远平面，左平面，右平面，上平面和下平面。
 视锥体在 3D 应用程序中通常表现为一个摄像机，其观察点为裁剪坐标系的原点，方向为穿过远近平面的中点。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-10.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-10.jpg">
 
 处于视锥体以外的图元将被丢弃，如果该图元与视锥体相交则会发生裁剪产生新的图元。值得注意的是透视裁剪是一个比较影响性能的过程，因为每个图元都需要和 6 个面进行相交计算，并产生新的图元。但是一般在x，y方向超出屏幕之外的，则无需产生新的图元，这些顶点能在视口变换的时候被更高效的丢弃。
 通过图元装配，所有 3D 的图元已经被转化为屏幕上 2D 的图元。
 
 ###### 4. 光栅化
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-11.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-11.jpg">
 
 在光栅化阶段，基本图元被转换为供片段着色器使用的片段（Fragment），Fragment 表示可以被渲染到屏幕上的像素，它包含位置，颜色，纹理坐标等信息，这些值是由图元的顶点信息进行插值计算得到的。这些片元接着被送到片元着色器中处理。这是从顶点数据到可渲染在显示设备上的像素的质变过程。
 在片段着色器运行之前会执行裁切（Clipping）。裁切会丢弃超出你的视图以外的所有像素，用来提升执行效率。
 
 ###### 5. 片段着色器
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-12.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-12.jpg">
 
 可编程的片段着色器是实现一些高级特效如纹理贴图，光照，环境光，阴影等功能的基础。片段着色器的主要作用是计算每一个片段最终的颜色值（或者丢弃该片段）。
 在片段着色器之前的阶段，渲染管线都只是在和顶点，图元打交道。在 3D 图形程序开发中，贴图是最重要的部分，程序可以通过 GL 命令上传纹理数据至 GL 内存中，这些纹理可以被片段着色器使用。片段着色器可以根据顶点着色器输出的顶点纹理坐标对纹理进行采样，以计算该片段的颜色值。
 另外，片段着色器也是执行光照等高级特效的地方，比如可以传给片段着色器一个光源位置和光源颜色，可以根据一定的公式计算出一个新的颜色值，这样就可以实现光照特效。
 ###### 6. 片段测试
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-13.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-13.jpg">
 
 片段着色器输出的颜色值，还要经过几个阶段的片段操作，这些操作可能会修改片段的颜色值，或者丢弃该片段，最终的片段颜色值才会被写入到帧缓冲中。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-14.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-14.jpg">
 
 像素所有权测试用来判断帧缓冲区中该位置的像素是否属于当前 OpenGL ES，例如在窗口系统中该位置可能会被其他应用程序窗口遮挡，此时该像素则不会被显示。
 在片段测试之后，片段要么被丢弃，要么每个片段对应的颜色，深度，模板值会被写入帧缓冲区，最终呈现在设备屏幕上。帧缓冲区中的颜色值也可以被读回到客户端应用程序中，这样可以实现绘制到纹理的效果。
@@ -154,12 +154,12 @@ PS：OpenGL 中的命令总是按照它被接收到的顺序执行，这意味�
 
 那么，帧缓存和渲染缓存到底代表什么，又用来做什么呢？
 总的来说，帧缓存是接收渲染结果的缓冲区，为GPU指定存储渲染结果的区域。它存储着 OpenGL ES 绘制每个像素点最终的所有信息：颜色，深度和模板值。更通俗点，可以理解成存储屏幕上最终显示的一帧画面的区域。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-15.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-15.jpg">
 
 而渲染缓存则存储呈现在屏幕上的渲染图像，它也被称作颜色缓冲区，因为它本质上是存储要显示的颜色。多个纹理对象或多个渲染缓存对象，可通过连接点（attachment points）连接到帧缓存对象上。
 可以同时存在很多帧缓存，并且可以通过 OpenGL ES 让 GPU 把渲染结果存储到任意数量的帧缓存中。但是，只有将内容绘制到视窗体提供的帧缓存中，才能将内容输出到显示设备。视图系统提供的帧缓存通常由两个缓存对象组成，一个前端缓存，一个后端缓存。
 前帧缓存决定了屏幕上显示的像素颜色。程序的渲染结果通常保存在后帧缓存在内的其他帧缓存，当渲染后的后帧缓存包含一个完成的图像时，前后帧缓存会立即互换，前帧缓存变成新的后帧缓存，后帧缓存变成新的前帧缓存。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-16.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-16.jpg">
 
 但是前后帧我们无法去操纵，它是由系统控制的。我们只能显式的告诉系统，要展示哪个帧缓存了，然后由系统去完成前后帧的切换。
 
@@ -171,19 +171,19 @@ PS：OpenGL 中的命令总是按照它被接收到的顺序执行，这意味�
 
 ##### 坐标系
 
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-17.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-17.jpg">
 
 OpenGL 渲染管线整个流程中，涉及了多个坐标系变化，看起来非常繁琐。但是针对 2D 图像处理，我们其实不需要关心这些变化，我们只需要了解标准化设备坐标即可。
 标准化设备坐标是一个 x、y 和 z 值在 -1.0 到 1.0 的一小段空间。任何落在范围外的坐标都会被丢弃／裁剪，不会显示在你的屏幕上。下面你会看到我们定义的在标准化设备坐标中的三角形（忽略 z 轴，仅处理 2D 图像，z 轴设置为 0.0）：
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-18.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-18.jpg">
 
 与通常的屏幕（UIKit）坐标不同，y 轴正方向为向上，(0, 0)坐标是这个图像的中心，而不是左上角。
 为了方便记忆，可以借助右手左边系。
 按照惯例，OpenGL 是一个右手坐标系。简单来说，就是正 x 轴在你的右手边，正 y 轴朝上，而正 z 轴是朝向后方的。想象你的屏幕处于三个轴的中心，则正 z 轴穿过你的屏幕朝向你。坐标系画起来如下：
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-19.png">
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-20.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-19.jpg">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-20.jpg">
 
 
 另外，为了能够把纹理映射到三角形上，我们需要指定三角形的每个顶点各自对应纹理的哪个部分。这样每个顶点就会关联着一个纹理坐标，用来标明该从纹理图像的哪个部分采样（采集片段颜色）。之后在图形的其它片段上进行片段插值。
 纹理坐标在 x 和 y 轴上，范围为 0 到 1 之间（我们使用的是 2D 纹理图像）。使用纹理坐标获取纹理颜色叫做采样。纹理坐标起始于（0, 0），也就是纹理图片的左下角，终始于（1, 1），即纹理图片的右上角。下面的图片展示了我们是如何把纹理坐标映射到三角形上。
-<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-21.png">
+<img src="https://Elliotsomething.GitHub.io/images/openGLES/openGLES-21.jpg">
