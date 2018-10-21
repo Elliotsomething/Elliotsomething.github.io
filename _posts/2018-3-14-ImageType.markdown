@@ -26,9 +26,8 @@ tags:
 0x52为webp类型
 
 通过查看图片的数据类型如下：
-[image]
+
 <img src="https://Elliotsomething.GitHub.io/images/imagetype-01.png">
-[image]
 <img src="https://Elliotsomething.GitHub.io/images/imagetype-02.png">
 
 通过图片的二进制流判断图片类型的代码如下：
