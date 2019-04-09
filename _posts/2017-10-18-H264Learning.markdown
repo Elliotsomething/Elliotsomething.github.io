@@ -2,7 +2,7 @@
 layout:     post
 title:      "H264 初步学习"
 subtitle:   "H264 Learning"
-date:       2018-1-18
+date:       2017-10-18
 author:     "Elliot"
 header-img: "img/post-bg-ios9-web.jpg"
 catalog:    true
